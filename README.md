@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DecisionLab
 
-## Getting Started
+**Overthink it, but make it fun.** Enter a dilemma, weigh it with Pros & Cons or a Weighted Comparison, put it before a Friend Jury, and record what you decided.
 
-First, run the development server:
+## Core task (v1)
+
+1. **Create a dilemma:** a question plus 2–6 options (or start from an example).
+2. **Think It Through:** Pros & Cons with importance (●/●●/●●●), or a Weighted Comparison where you set criteria, weights, and dealbreakers. An option rated 1 on a dealbreaker is ruled out.
+3. **Settle This:** convene a Friend Jury and copy the link. Friends vote on their phones, no sign-up, and can leave a short "closing argument."
+4. **Verdict:** a playful, clearly **nonbinding** verdict comparing the jury with your own analysis.
+5. **Make the call:** see where each method landed, pick an option, and add a note for future you.
+
+## Architecture
+
+| Piece | Where it lives | Why |
+|---|---|---|
+| Dilemmas, pros/cons, criteria, outcome | Browser `localStorage` | No login for v1; private reasoning never leaves your device |
+| Friend Jury polls and votes | `/api/polls/*` → Supabase (or in-memory fallback) | Has to be shared across people |
+
+- Share links use 128-bit random tokens, so they can't be guessed.
+- Only the question and options are sent to the server. Pros, cons, and ratings stay local.
+- One vote per browser per poll (an anonymous random voter id). Re-voting replaces the earlier vote. `voter_id` is never returned by the API.
+- Inputs are validated server-side, and each IP is rate-limited (best-effort, per instance).
+- Supabase has **RLS enabled with no policies**, so the public key can't touch the tables. Only the server, using the secret key, can.
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+With no env vars set, polls are kept in memory. That's fine for local use, but they reset on restart.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Persist polls with Supabase (needed for a real deploy)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a free Supabase project.
+2. Run [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql) in the SQL editor.
+3. Copy `.env.example` to `.env.local` and set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (Project Settings → API keys → secret key). **Never** prefix them with `NEXT_PUBLIC_`.
+4. Add the same two variables in Vercel → Project → Settings → Environment Variables.
 
-## Learn More
+## Deploy
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx vercel        # preview
+npx vercel --prod
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Security checklist
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] Keys only in env vars; `.env*` is gitignored (except `.env.example`).
+- [x] `.claude/settings.json` denies agent reads and edits of `.env` files.
+- [x] RLS on for `polls` and `votes`.
+- [ ] Run `/security-review` before sharing the link.

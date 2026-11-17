@@ -1,69 +1,89 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { deleteDilemma, listDilemmas } from "@/lib/storage";
+import { labelOf } from "@/lib/analysis";
+import type { Dilemma } from "@/lib/types";
 
 export default function Home() {
+  const [dilemmas, setDilemmas] = useState<Dilemma[] | null>(null);
+
+  useEffect(() => {
+    // localStorage is only available after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDilemmas(listDilemmas());
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="space-y-10">
+      <section className="card relative overflow-hidden bg-grape-soft">
+        <div className="max-w-xl space-y-4">
+          <h1 className="font-display text-4xl font-extrabold leading-tight sm:text-5xl">
+            Too complicated for a coin flip.
+            <br />
+            <span className="text-grape">Too silly for a spreadsheet.</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg text-ink/70">
+            Enter a dilemma, weigh it with pros &amp; cons or criteria, then put it before a jury of
+            your friends. You still make the call.
           </p>
+          <Link href="/new" className="btn-primary text-lg">
+            + Start a dilemma
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div aria-hidden className="pointer-events-none absolute -right-6 -bottom-10 hidden text-[10rem] sm:block">
+          🤔
         </div>
-      </main>
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-display text-2xl font-bold">Your dilemmas</h2>
+        {dilemmas === null ? null : dilemmas.length === 0 ? (
+          <p className="text-ink/60">
+            Nothing here yet. Your dilemmas are saved in this browser, so you can come back to them.
+          </p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {dilemmas.map((d) => (
+              <li key={d.id} className="card flex flex-col gap-3">
+                <Link href={`/d/${d.id}`} className="font-display text-lg font-bold hover:text-grape">
+                  {d.question}
+                </Link>
+                <div className="flex flex-wrap gap-2">
+                  {d.options.map((o) => (
+                    <span key={o.id} className="chip bg-white text-xs">
+                      {o.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-auto flex items-center justify-between text-sm text-ink/60">
+                  <span>
+                    {d.outcome ? (
+                      <>✅ Decided: <strong className="text-ink">{labelOf(d.options, d.outcome.optionId)}</strong></>
+                    ) : d.poll ? (
+                      "🧑‍⚖️ Jury in session"
+                    ) : (
+                      "🧠 Thinking it through"
+                    )}
+                  </span>
+                  <button
+                    className="btn-ghost"
+                    onClick={() => {
+                      if (confirm("Delete this dilemma?")) {
+                        deleteDilemma(d.id);
+                        setDilemmas(listDilemmas());
+                      }
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
