@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DecisionLab: Project Proposal</title>
+  <meta name="description" content="DecisionLab helps you work through a dilemma with pros & cons, weighted comparison, 2×2 matrices, decision trees, and peer review from friends. Project proposal for Design, Build, Ship (MPCS 51238).">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --ink: #1d1a2b;
+      --muted: #5f5b6e;
+      --line: #e6e4ea;
+      --bg: #f7f7f5;
+      --card: #ffffff;
+      --accent: #6d4aff;
+      --accent-soft: #ece6ff;
+      --mint: #12a87a;
+      --mint-soft: #dcf5ea;
+      --coral: #e5484d;
+      --coral-soft: #fde4e4;
+      --sun: #ffcf4a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.6;
+      font-size: 17px;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+    header.hero { background: var(--ink); color: #fff; padding: 72px 0 56px; }
+    .eyebrow {
+      font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+      color: #b7b1cc; margin: 0 0 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; margin: 0 0 8px; }
+    .brand .mark {
+      width: 48px; height: 48px; border-radius: 10px; background: var(--sun);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .hero h1 { font-size: 44px; line-height: 1.1; margin: 0; letter-spacing: -.02em; }
+    .hero .tagline { font-size: 20px; color: #dcd8ea; margin: 0 0 28px; }
+    .oneliner {
+      border-left: 4px solid #a690ff; padding: 4px 0 4px 18px;
+      font-size: 19px; margin: 0 0 28px; color: #fff;
+    }
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+    .cta a {
+      display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 600;
+      text-decoration: none; font-size: 15px;
+    }
+    .cta .primary { background: var(--accent); color: #fff; }
+    .cta .secondary { border: 1px solid #4b4660; color: #fff; }
+
+    nav.toc {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(247,247,245,.95); backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav.toc ul {
+      list-style: none; margin: 0 auto; padding: 12px 24px; max-width: 820px;
+      display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px;
+    }
+    nav.toc a { color: var(--muted); text-decoration: none; }
+    nav.toc a:hover { color: var(--accent); }
+
+    section { padding: 48px 0 8px; }
+    section h2 { font-size: 26px; margin: 0 0 16px; letter-spacing: -.01em; }
+    section h3 { font-size: 18px; margin: 24px 0 8px; }
+    p { margin: 0 0 14px; }
+    .muted { color: var(--muted); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 10px; padding: 18px 22px; margin: 0 0 14px;
+    }
+    .card .who { font-weight: 700; margin-bottom: 4px; }
+    .card .who span { font-weight: 400; color: var(--muted); }
+
+    .highlight {
+      background: var(--accent-soft); border-radius: 10px;
+      padding: 18px 22px; margin: 0 0 14px;
+    }
+
+    .flow { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+    .flow li { counter-increment: step; position: relative; padding: 0 0 18px 52px; }
+    .flow li::before {
+      content: counter(step); position: absolute; left: 0; top: 0;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--accent-soft); color: var(--accent); font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .flow strong { display: block; }
+
+    .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 8px 0 14px; }
+    .tool { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+    .tool .name { font-weight: 700; }
+    .tool .group { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .tool p { font-size: 15px; margin: 4px 0 0; color: var(--muted); }
+
+    /* Mockup */
+    .mock { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 8px 0 14px; }
+    .mock-head { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+    .mock-head .id { font-size: 13px; color: var(--muted); }
+    .mock-head .title { font-weight: 700; }
+    .mock-body { padding: 16px 20px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .chip { font-size: 14px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; background: #fff; }
+    .chip.db { background: var(--coral-soft); border-color: #f3c2c3; }
+    .signals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 12px; }
+    .signal { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 14px; }
+    .signal .k { display: block; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .signal .v { font-weight: 600; }
+    .signal .v.none { color: #a5a1b2; font-weight: 500; }
+    .findings { background: var(--ink); color: #f7f7f5; border-radius: 8px; padding: 14px 16px; }
+    .findings .k { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--sun); }
+    .findings .h { font-size: 19px; font-weight: 700; margin: 4px 0 2px; }
+    .findings .s { font-size: 14px; color: #c9c5d6; }
+    .findings .fine { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #8c879e; margin-top: 8px; }
+    @media (max-width: 640px) {
+      .signals { grid-template-columns: repeat(2, 1fr); }
+      .hero h1 { font-size: 34px; }
+    }
+
+    .timeline { border-left: 3px solid var(--line); margin-left: 8px; padding-left: 24px; }
+    .milestone { position: relative; margin-bottom: 28px; }
+    .milestone::before {
+      content: ""; position: absolute; left: -33px; top: 6px;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: var(--card); border: 3px solid var(--accent);
+    }
+    .milestone.big::before { background: var(--accent); }
+    .milestone.done::before { background: var(--mint); border-color: var(--mint); }
+    .milestone .date {
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .milestone.done .date { color: var(--mint); }
+    .milestone h3 { margin: 2px 0 6px; }
+    .milestone ul { margin: 0; padding-left: 20px; }
+
+    .tag {
+      display: inline-block; font-size: 12px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--accent-soft); color: var(--accent); margin-right: 6px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--card); }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    td:first-child { font-weight: 600; white-space: nowrap; }
+
+    ul li { margin-bottom: 6px; }
+
+    footer {
+      margin-top: 56px; padding: 28px 0 48px; border-top: 1px solid var(--line);
+      font-size: 14px; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Design, Build, Ship · MPCS 51238 · Project Proposal</p>
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="34" height="34">
+            <defs><clipPath id="f"><path d="M13 4V12L5.5 25A2.5 2.5 0 0 0 7.7 28.8H24.3A2.5 2.5 0 0 0 26.5 25L19 12V4Z"/></clipPath></defs>
+            <g clip-path="url(#f)"><path d="M0 19.5Q8 17.5 16 19.5T32 19.5V32H0Z" fill="#6d4aff"/><circle cx="13.5" cy="23.5" r="1.3" fill="#fff"/><circle cx="18.5" cy="25.5" r=".9" fill="#fff"/></g>
+            <path d="M13 4V12L5.5 25A2.5 2.5 0 0 0 7.7 28.8H24.3A2.5 2.5 0 0 0 26.5 25L19 12V4M11 4H21" fill="none" stroke="#1d1a2b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <h1>DecisionLab</h1>
+      </div>
+      <p class="tagline">Overthink it, but make it fun.</p>
+      <p class="oneliner">
+        Some decisions are too complicated for a coin flip but too small for a spreadsheet. DecisionLab
+        lets you describe a dilemma once, then look at it through several lenses: pros &amp; cons, a
+        weighted comparison, 2×2 matrices, and a decision tree. You can also send it to friends for
+        peer review. It helps you see your tradeoffs. It doesn't claim to know the right answer.
+      </p>
+      <div class="cta">
+        <a class="primary" href="/">Try the prototype</a>
+        <a class="secondary" href="https://github.com/jdaguas/decisionlab">GitHub repository</a>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sections">
+    <ul>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#users">Users</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#focus">Focus</a></li>
+      <li><a href="#roadmap">Roadmap</a></li>
+      <li><a href="#stack">Stack</a></li>
+    </ul>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- PROBLEM -->
+    <section id="problem">
+      <h2>The problem</h2>
+      <p>
+        People make many decisions that are too complicated for a coin flip but not important enough
+        to build a spreadsheet for. <em>Should I go to the concert on Wednesday even though my project
+        is due Friday? Which apartment should I take? Should I adopt a dog?</em>
+      </p>
+      <p>
+        Today the reasoning is scattered. A pros-and-cons list lives in a notes app, the "what do you
+        think?" happens in a group chat, and a poll lives in yet another app. Formal tools feel like
+        homework. Casual ones are too shallow to show the real tradeoff. And nothing puts your own
+        reasoning next to what your friends think, so you can't see where they agree or disagree.
+      </p>
+    </section>
+
+    <!-- USERS -->
+    <section id="users">
+      <h2>Who it's for</h2>
+      <ul>
+        <li><strong>Students</strong> weighing schoolwork against social plans.</li>
+        <li><strong>Friends</strong> settling everyday disagreements or deciding what to do together.</li>
+        <li><strong>Anyone comparing real choices</strong>, such as apartments, purchases, events, or job offers, who wants structure without taking it too seriously.</li>
+      </ul>
+      <p>
+        There are two kinds of user. The <strong>decider</strong> owns the dilemma and does the thinking.
+        The <strong>reviewers</strong> are friends who open a link on their phone, respond in under a
+        minute, and never have to sign up.
+      </p>
+
+      <div class="highlight">
+        <strong>The moment:</strong> you've been going back and forth for a day, you've texted three friends,
+        and you still can't tell whether you <em>want</em> to go or just feel like you <em>should</em>.
+      </div>
+
+      <h3>What I still need to learn</h3>
+      <p class="muted">
+        I haven't run user interviews for this project yet, so these are hypotheses, not findings.
+        They're the questions my first round of tests is designed to answer.
+      </p>
+      <ul>
+        <li><strong>Is structure too much work for casual decisions?</strong> Or does it help, as long as you only have to describe the dilemma once?</li>
+        <li><strong>Is peer review fun enough</strong> that friends actually respond and explain why?</li>
+        <li><strong>Do people switch between tools</strong>, or settle on one favorite?</li>
+        <li><strong>Do people come back</strong> for a second dilemma, or is it a one-time novelty?</li>
+        <li><strong>Does seeing disagreement help?</strong> For example: "Your peers say GO; your weighted comparison says STAY."</li>
+      </ul>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how">
+      <h2>How it works</h2>
+      <ol class="flow">
+        <li><strong>Describe it once</strong>The landing page asks three short questions: what you're deciding, your options (optional, since sometimes you're just gathering opinions), and any dealbreakers (also optional). Paste a Zillow or restaurant link as an option, and it's named for you.</li>
+        <li><strong>Think it through, with any tool</strong>Every tool works from the same options and dealbreakers, so you never re-enter anything. Mark an option as breaking a dealbreaker once, and it's ruled out everywhere.</li>
+        <li><strong>Ask others with peer review</strong>Share a link. With options, friends vote and leave a comment. Without options, they share opinions, and you can turn a good suggestion into an option with one click. If you change your options later, the link updates automatically.</li>
+        <li><strong>Read the findings</strong>A playful, clearly nonbinding summary of whether your own analysis and your peers agree, written like a lab report: "Replicated!", "Inconclusive", "Conflicting results".</li>
+        <li><strong>Draw your conclusion</strong>See where each method landed, record your choice, and leave a note for future you.</li>
+      </ol>
+
+      <h3>The tools</h3>
+      <div class="tools">
+        <div class="tool"><div class="group">Think it through</div><div class="name">Pros &amp; Cons</div><p>Good and bad points for each option, marked minor, matters, or big deal.</p></div>
+        <div class="tool"><div class="group">Think it through</div><div class="name">Weighted Comparison</div><p>Pick criteria, decide how much each matters, and rate every option 1 to 5.</p></div>
+        <div class="tool"><div class="group">Think it through</div><div class="name">2×2 Matrices</div><p>Drag options onto two axes, such as Effort vs. Payoff. Make several grids to compare different variables, and rename any label.</p></div>
+        <div class="tool"><div class="group">Think it through</div><div class="name">Decision Tree</div><p>Break an option down to any depth (Cost → Short term → Adoption fees) and add what-if scenarios with a chance and a feeling.</p></div>
+        <div class="tool"><div class="group">Ask others</div><div class="name">Peer Review</div><p>A no-sign-up link for friends to vote or share opinions, with live results.</p></div>
+      </div>
+
+      <h3>What the payoff looks like</h3>
+      <div class="mock" aria-label="Example of the conclusion and findings screens">
+        <div class="mock-head">
+          <div class="id">Mockup of the prototype's conclusion and findings screens, with example data</div>
+          <div class="title">Should I go to the concert Wednesday even though my project is due Friday?</div>
+        </div>
+        <div class="mock-body">
+          <div class="chips">
+            <span class="chip">Go to the concert</span>
+            <span class="chip">Stay home and work</span>
+            <span class="chip db">🚫 Can't miss the Friday deadline</span>
+          </div>
+          <div class="signals">
+            <div class="signal"><span class="k">Pros &amp; Cons</span><span class="v">Go</span></div>
+            <div class="signal"><span class="k">Weighted</span><span class="v">Stay home</span></div>
+            <div class="signal"><span class="k">2×2 Matrix</span><span class="v">Go</span></div>
+            <div class="signal"><span class="k">Decision Tree</span><span class="v">Stay home</span></div>
+            <div class="signal"><span class="k">Peer Review</span><span class="v">Go</span></div>
+          </div>
+          <div class="findings">
+            <div class="k">⚗ Findings</div>
+            <div class="h">Conflicting results: reviewers say GO, your weighted comparison says STAY HOME.</div>
+            <div class="s">Your friends and your analysis disagree. Read their comments: are they weighing something you aren't, or the other way around?</div>
+            <div class="fine">Not peer-reviewed science · for fun · you decide</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Ground rules</h3>
+      <ul>
+        <li><strong>You decide.</strong> DecisionLab never presents a score as the "correct" answer. Every playful verdict is labeled nonbinding.</li>
+        <li><strong>Private by default.</strong> Your pros, cons, ratings, and trees stay in your browser. Only the question, the options, and (if you allow it) your dealbreakers are shared with reviewers.</li>
+        <li><strong>No advice.</strong> No financial, medical, or legal advice, and no predictions of real-world outcomes.</li>
+      </ul>
+    </section>
+
+    <!-- FOCUS -->
+    <section id="focus">
+      <h2>My focus: Design</h2>
+      <p>
+        The biggest risk for DecisionLab is a design risk: does structured thinking feel like
+        homework when the decision is casual? If it does, no amount of backend work will save it.
+        These methods aren't new. A weighted decision matrix comes straight from decision
+        analysis, and Benjamin Franklin described weighing pros against cons as "moral algebra"
+        in 1772. What I'm designing is the experience of using several of them together, quickly.
+      </p>
+      <p>I want to get better at <strong>making structured thinking feel light</strong>. Concretely:</p>
+      <div class="card">
+        <div class="who">1. Describe once, reuse everywhere <span>· removing redundant work</span></div>
+        Options and dealbreakers live in one place, and every tool reads from them. Nothing is
+        pre-filled. Suggestions are tap-to-add chips, so you never have to delete something you
+        didn't ask for.
+      </div>
+      <div class="card">
+        <div class="who">2. One visual language <span>· calm, lab-themed, not cartoonish</span></div>
+        A beaker mark, flat cards, and lab vocabulary throughout: peer review, findings,
+        "replicated", "inconclusive". The tone is playful, but the interface stays out of the way.
+      </div>
+      <div class="card">
+        <div class="who">3. Show disagreement, don't hide it <span>· making tradeoffs visible</span></div>
+        The conclusion puts every method side by side. When your methods disagree, the app says so
+        and asks why, instead of averaging the disagreement away.
+      </div>
+      <div class="card">
+        <div class="who">4. Fix what confuses people <span>· design from observed problems</span></div>
+        My own early testing already found a real problem. In the weighted table, option names like
+        "Yes" and "No" read as answers to the "Dealbreaker?" column, and it wasn't clear which way
+        "good" pointed for Cost. Watching new users is how I'll find the rest.
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <div class="timeline">
+
+        <div class="milestone big done">
+          <div class="date">Nov 10 – Nov 17 · v1 shipped</div>
+          <h3>v1: works end to end</h3>
+          <ul>
+            <li>A guided "describe it once" flow, with optional options (including links) and optional dealbreakers.</li>
+            <li>Five tools on one shared dilemma: Pros &amp; Cons, Weighted, multiple 2×2s, a nested Decision Tree, and Peer Review.</li>
+            <li>Peer review links: no sign-up, open-opinion mode, one-click "add as option", live updates.</li>
+            <li>Findings and a conclusion screen comparing every method.</li>
+            <li>Deployed on Vercel with Supabase, with row-level security on.</li>
+          </ul>
+          <p class="muted" style="margin-top:8px">
+            <span class="tag">Riskiest part</span>Sharing across people needs a real backend, so the peer
+            review API was tested end to end (create, vote, re-vote, bad input) before deploying, then again
+            on the live site with real Supabase data.
+          </p>
+        </div>
+
+        <div class="milestone">
+          <div class="date">Nov 18 – Nov 24</div>
+          <h3>Test with real people</h3>
+          <ul>
+            <li>Give 3 to 5 people a real dilemma of their own. Watch them describe it, try one tool, and send a peer review link, without helping.</li>
+            <li>Watch the reviewers too: can a friend respond from their phone without asking what to do?</li>
+            <li>Write down where people hesitate, which tool they pick, and whether the findings make sense to them.</li>
+          </ul>
+        </div>
+
+        <div class="milestone big">
+          <div class="date">Nov 25 – Dec 1 · Project fair</div>
+          <h3>v2</h3>
+          <p class="muted">This is a draft, and I'll reorder it based on what testing shows.</p>
+          <ul>
+            <li>Clearer ratings: a per-criterion hint (e.g. "5 = cheapest") so it's obvious which way is good.</li>
+            <li>A QR code for peer review, for the fair demo: visitors scan, vote, and watch the findings change live.</li>
+            <li>Close a peer review when you're done, and see a history of decisions and how they turned out.</li>
+            <li>A more compact decision tree on phones.</li>
+            <li><em>If time allows:</em> optional accounts, so dilemmas follow you across devices.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <h3>Out of scope</h3>
+      <ul>
+        <li>AI-generated decisions, or any objective "correct choice" score.</li>
+        <li>Predicting real-world outcomes.</li>
+        <li>Financial, medical, or legal advice.</li>
+        <li>Sophisticated group-consensus algorithms.</li>
+        <li>Native iOS and Android apps.</li>
+      </ul>
+
+      <h3>How I'll know it works</h3>
+      <ul>
+        <li>A new person can describe a real dilemma, use one tool, and send a peer review link without asking me anything.</li>
+        <li>A friend can open the link on their phone and respond in under a minute.</li>
+        <li>Testers can explain in their own words why the findings say what they say, and at least one says they'd use it again.</li>
+      </ul>
+    </section>
+
+    <!-- STACK -->
+    <section id="stack">
+      <h2>Tech stack, MCP servers &amp; CLIs</h2>
+      <table>
+        <thead><tr><th>Piece</th><th>Choice</th><th>Why it fits</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>App</td>
+            <td>Next.js, React, TypeScript</td>
+            <td>Interactive tools in the browser, and small server routes for peer review, in one codebase.</td>
+          </tr>
+          <tr>
+            <td>Styling</td>
+            <td>Tailwind CSS</td>
+            <td>A small, consistent set of cards, buttons, and colors for the whole lab look.</td>
+          </tr>
+          <tr>
+            <td>Your dilemmas</td>
+            <td>Browser storage</td>
+            <td>No login needed for v1, and your private reasoning never leaves your device.</td>
+          </tr>
+          <tr>
+            <td>Peer review</td>
+            <td>Supabase (Postgres)</td>
+            <td>Stores shared questions, options, and responses. Row-level security is on with no public access. Only the app's server, using a secret key, can read or write.</td>
+          </tr>
+          <tr>
+            <td>Sharing</td>
+            <td>Unguessable links</td>
+            <td>Random 128-bit links for reviewers. A private key for the creator is the only way to edit a live peer review, and only a scrambled (hashed) copy of it is stored.</td>
+          </tr>
+          <tr>
+            <td>Hosting</td>
+            <td>Vercel</td>
+            <td>Deploys automatically from GitHub on every push, and keeps keys in environment variables.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>MCP servers</h3>
+      <ul>
+        <li><strong>Supabase MCP</strong>: lets Claude Code apply database migrations and check Supabase's security advisors while I build.</li>
+      </ul>
+
+      <h3>CLIs</h3>
+      <ul>
+        <li><strong>Git &amp; GitHub CLI</strong>: version control and the repository.</li>
+        <li><strong>Vercel CLI</strong>: deploys, environment variables, and runtime logs for debugging.</li>
+        <li><strong>Node.js / npm</strong>: running and building the app.</li>
+        <li><strong>Playwright</strong>: scripted browser walkthroughs of each flow, as a new user, before shipping.</li>
+      </ul>
+
+      <h3>Costs &amp; limits</h3>
+      <ul>
+        <li>Vercel and Supabase stay on their free tiers.</li>
+        <li>There's no paid API. DecisionLab doesn't call an AI model, so there's no model bill.</li>
+        <li>Creating, editing, and voting on peer reviews are rate-limited per network, and every input is checked on the server.</li>
+        <li>Option links must be normal web links (http or https), checked on the server and again before display.</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap">
+      DecisionLab · Project proposal for Design, Build, Ship (MPCS 51238), Autumn 2026.<br>
+      <a href="/">Live prototype</a> · <a href="https://github.com/jdaguas/decisionlab">GitHub</a>
+    </div>
+  </footer>
+
+</body>
+</html>
