@@ -1,5 +1,5 @@
 import "server-only";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Option, PollResults } from "../types";
 
@@ -10,37 +10,70 @@ import type { Option, PollResults } from "../types";
  * store so the app runs locally with zero setup.
  */
 
-type PollRow = { id: string; share_token: string; question: string; options: Option[]; created_at: string };
-type VoteRow = { poll_id: string; option_id: string; voter_id: string; reason: string | null; created_at: string };
+type PollRow = {
+  id: string;
+  share_token: string;
+  question: string;
+  options: Option[];
+  dealbreakers: string[];
+  owner_key_hash: string | null;
+  created_at: string;
+};
+type VoteRow = { poll_id: string; option_id: string | null; voter_id: string; reason: string | null; created_at: string };
+type PollPatch = { options: Option[]; dealbreakers: string[] };
 
 export interface PollStore {
-  create(question: string, options: Option[]): Promise<string>;
+  create(question: string, patch: PollPatch, ownerKeyHash: string): Promise<string>;
   get(token: string): Promise<PollRow | null>;
-  vote(pollId: string, optionId: string, voterId: string, reason: string | null): Promise<void>;
+  update(pollId: string, patch: PollPatch): Promise<void>;
+  vote(pollId: string, optionId: string | null, voterId: string, reason: string | null): Promise<void>;
   votes(pollId: string): Promise<VoteRow[]>;
 }
 
-export function newToken(): string {
-  // 128 bits, URL-safe: unguessable share links.
-  return randomBytes(16).toString("base64url");
+function randomToken(bytes: number): string {
+  return randomBytes(bytes).toString("base64url");
+}
+
+/** 128-bit share token (public, for voting) and 192-bit owner key (private, for editing). */
+export const newShareToken = () => randomToken(16);
+export const newOwnerKey = () => randomToken(24);
+
+export function hashKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+export function ownerKeyMatches(key: string, storedHash: string | null): boolean {
+  if (!storedHash) return false;
+  const a = Buffer.from(hashKey(key), "hex");
+  const b = Buffer.from(storedHash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 class MemoryStore implements PollStore {
   polls = new Map<string, PollRow>();
+  byId = new Map<string, PollRow>();
   voteRows = new Map<string, Map<string, VoteRow>>();
 
-  async create(question: string, options: Option[]) {
-    const token = newToken();
-    const id = crypto.randomUUID();
-    this.polls.set(token, { id, share_token: token, question, options, created_at: new Date().toISOString() });
-    this.voteRows.set(id, new Map());
+  async create(question: string, patch: PollPatch, ownerKeyHash: string) {
+    const token = newShareToken();
+    const row: PollRow = {
+      id: crypto.randomUUID(), share_token: token, question, ...patch,
+      owner_key_hash: ownerKeyHash, created_at: new Date().toISOString(),
+    };
+    this.polls.set(token, row);
+    this.byId.set(row.id, row);
+    this.voteRows.set(row.id, new Map());
     return token;
   }
   async get(token: string) {
     return this.polls.get(token) ?? null;
   }
-  async vote(pollId: string, optionId: string, voterId: string, reason: string | null) {
-    // One vote per voter per poll; re-voting replaces the old vote.
+  async update(pollId: string, patch: PollPatch) {
+    const row = this.byId.get(pollId);
+    if (row) Object.assign(row, patch);
+  }
+  async vote(pollId: string, optionId: string | null, voterId: string, reason: string | null) {
+    // One response per voter per poll; responding again replaces the old one.
     this.voteRows.get(pollId)?.set(voterId, {
       poll_id: pollId, option_id: optionId, voter_id: voterId, reason, created_at: new Date().toISOString(),
     });
@@ -53,20 +86,26 @@ class MemoryStore implements PollStore {
 class SupabaseStore implements PollStore {
   constructor(private db: SupabaseClient) {}
 
-  async create(question: string, options: Option[]) {
-    const token = newToken();
-    const { error } = await this.db.from("polls").insert({ share_token: token, question, options });
+  async create(question: string, patch: PollPatch, ownerKeyHash: string) {
+    const token = newShareToken();
+    const { error } = await this.db
+      .from("polls")
+      .insert({ share_token: token, question, ...patch, owner_key_hash: ownerKeyHash });
     if (error) throw error;
     return token;
   }
   async get(token: string) {
     const { data, error } = await this.db
-      .from("polls").select("id, share_token, question, options, created_at")
+      .from("polls").select("id, share_token, question, options, dealbreakers, owner_key_hash, created_at")
       .eq("share_token", token).maybeSingle();
     if (error) throw error;
-    return data as PollRow | null;
+    return data ? ({ ...data, dealbreakers: data.dealbreakers ?? [] } as PollRow) : null;
   }
-  async vote(pollId: string, optionId: string, voterId: string, reason: string | null) {
+  async update(pollId: string, patch: PollPatch) {
+    const { error } = await this.db.from("polls").update(patch).eq("id", pollId);
+    if (error) throw error;
+  }
+  async vote(pollId: string, optionId: string | null, voterId: string, reason: string | null) {
     const { error } = await this.db.from("votes").upsert(
       { poll_id: pollId, option_id: optionId, voter_id: voterId, reason, created_at: new Date().toISOString() },
       { onConflict: "poll_id,voter_id" },
@@ -100,18 +139,32 @@ export async function results(token: string): Promise<PollResults | null> {
   if (!poll) return null;
   const votes = await store.votes(poll.id);
   const tallies: Record<string, number> = Object.fromEntries(poll.options.map((o) => [o.id, 0]));
-  for (const v of votes) if (v.option_id in tallies) tallies[v.option_id]++;
+  const open = poll.options.length === 0;
+  let total = 0;
+  for (const v of votes) {
+    if (v.option_id && v.option_id in tallies) {
+      tallies[v.option_id]++;
+      total++;
+    } else if (open && v.reason) {
+      total++;
+    }
+  }
   return {
     token: poll.share_token,
     question: poll.question,
     options: poll.options,
+    dealbreakers: poll.dealbreakers,
     createdAt: poll.created_at,
     tallies,
-    totalVotes: votes.length,
-    // voter_id is deliberately NOT returned.
+    totalVotes: total,
+    // voter_id and owner_key_hash are deliberately NOT returned.
     reasons: votes
       .filter((v) => v.reason)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
-      .map((v) => ({ optionId: v.option_id, reason: v.reason!, createdAt: v.created_at })),
+      .map((v) => ({
+        optionId: v.option_id && v.option_id in tallies ? v.option_id : null,
+        reason: v.reason!,
+        createdAt: v.created_at,
+      })),
   };
 }

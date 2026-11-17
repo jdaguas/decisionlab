@@ -1,4 +1,7 @@
-export type Option = { id: string; label: string };
+export type Option = { id: string; label: string; /** optional http(s) link, e.g. a listing or menu */ url?: string };
+
+/** A non-negotiable condition, e.g. "Can't miss the deadline". Shared by every tool. */
+export type Dealbreaker = { id: string; text: string };
 
 export type Factor = {
   id: string;
@@ -14,24 +17,24 @@ export type Criterion = {
   label: string;
   /** 1–5 */
   weight: number;
-  /** If true, any option scoring 1 on this criterion is ruled out. */
-  dealbreaker: boolean;
 };
 
-export type Mode = "think" | "settle";
-export type Method = "proscons" | "weighted";
+export type Tool = "proscons" | "weighted" | "jury";
 
 export type Dilemma = {
   id: string;
   question: string;
+  /** May be empty: sometimes you're just gathering opinions. */
   options: Option[];
+  dealbreakers: Dealbreaker[];
+  /** fails[optionId][dealbreakerId] = true when that option breaks that dealbreaker */
+  fails: Record<string, Record<string, boolean>>;
   factors: Factor[];
   criteria: Criterion[];
   /** scores[optionId][criterionId] = 1–5 */
   scores: Record<string, Record<string, number>>;
-  mode: Mode;
-  method: Method;
-  poll?: { token: string; createdAt: string };
+  tool: Tool;
+  poll?: { token: string; ownerKey?: string; shareDealbreakers?: boolean; createdAt: string };
   outcome?: { optionId: string; note: string; decidedAt: string };
   createdAt: string;
   updatedAt: string;
@@ -42,8 +45,10 @@ export type PollResults = {
   token: string;
   question: string;
   options: Option[];
+  dealbreakers: string[];
   createdAt: string;
   tallies: Record<string, number>;
+  /** Votes for a current option (options mode) or opinions (open mode). */
   totalVotes: number;
-  reasons: { optionId: string; reason: string; createdAt: string }[];
+  reasons: { optionId: string | null; reason: string; createdAt: string }[];
 };

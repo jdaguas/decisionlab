@@ -3,6 +3,7 @@
 import { scoreFor, weightedSummary } from "@/lib/analysis";
 import { uid } from "@/lib/storage";
 import type { Criterion, Dilemma } from "@/lib/types";
+import { DealbreakerToggle } from "./DilemmaDetails";
 
 const SUGGESTIONS = ["Cost", "Time", "Fun", "Stress", "Long-term impact", "Time with friends"];
 const SCORE_HINT = ["", "awful", "meh", "okay", "good", "great"];
@@ -14,7 +15,7 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
   const setCrit = (id: string, patch: Partial<Criterion>) =>
     update({ criteria: d.criteria.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
   const addCrit = (label = "") =>
-    update({ criteria: [...d.criteria, { id: uid(), label, weight: 3, dealbreaker: false }] });
+    update({ criteria: [...d.criteria, { id: uid(), label, weight: 3 }] });
   const removeCrit = (id: string) => update({ criteria: d.criteria.filter((c) => c.id !== id) });
   const setScore = (optionId: string, criterionId: string, score: number) =>
     update({ scores: { ...d.scores, [optionId]: { ...d.scores[optionId], [criterionId]: score } } });
@@ -26,14 +27,48 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
         &ldquo;Cost&rdquo; a cheap option gets a 5.
       </p>
 
+      {d.dealbreakers.length > 0 && (
+        <div className="card overflow-x-auto">
+          <h3 className="mb-1 font-display font-bold">🚫 Dealbreakers first</h3>
+          <p className="mb-3 text-xs text-ink/50">
+            Does any option break one? Breaking one rules it out no matter how it scores. These are the same
+            checks as in Pros &amp; Cons.
+          </p>
+          <table className="w-full min-w-[480px] text-sm">
+            <thead>
+              <tr className="text-left">
+                <th />
+                {d.options.map((o) => (
+                  <th key={o.id} className="px-2 pb-2">
+                    <span className="chip bg-white text-xs text-ink">{o.label}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {d.dealbreakers.map((b) => (
+                <tr key={b.id}>
+                  <td className="py-1 pr-2 text-ink/70">{b.text}</td>
+                  {d.options.map((o) => (
+                    <td key={o.id} className="px-2 py-1">
+                      <DealbreakerToggle d={d} update={update} optionId={o.id} dealbreakerId={b.id} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="card overflow-x-auto">
         {d.criteria.length === 0 ? (
           <p className="text-ink/60">No criteria yet. Add one below or pick a suggestion.</p>
         ) : (
-          <table className="w-full min-w-[560px] border-separate border-spacing-y-2 text-sm">
+          <table className="w-full min-w-[480px] border-separate border-spacing-y-2 text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-ink/50">
-                <th colSpan={3} />
+                <th colSpan={2} />
                 <th
                   colSpan={d.options.length}
                   className="rounded-t-lg border-l-2 border-ink/10 bg-grape-soft/60 px-2 pt-1.5 font-semibold text-grape"
@@ -45,10 +80,6 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
               <tr className="text-left text-xs uppercase tracking-wide text-ink/50">
                 <th className="pr-2 font-semibold">Criterion</th>
                 <th className="px-2 font-semibold">How much it matters</th>
-                <th className="px-2 font-semibold">
-                  Dealbreaker?
-                  <span className="block normal-case font-normal text-ink/40">a 1 rules it out</span>
-                </th>
                 {d.options.map((o, i) => (
                   <th
                     key={o.id}
@@ -85,14 +116,6 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                       <span className="w-4 font-mono">{c.weight}</span>
                     </div>
                   </td>
-                  <td className="px-2 text-center">
-                    <input
-                      type="checkbox" checked={c.dealbreaker}
-                      aria-label={`${c.label || "criterion"} is a dealbreaker`}
-                      className="h-4 w-4 accent-coral"
-                      onChange={(e) => setCrit(c.id, { dealbreaker: e.target.checked })}
-                    />
-                  </td>
                   {d.options.map((o) => {
                     const s = scoreFor(d, o.id, c.id);
                     return (
@@ -100,7 +123,7 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                         <select
                           value={s}
                           aria-label={`${o.label} on ${c.label || "criterion"}`}
-                          className={`input py-1 ${c.dealbreaker && s <= 1 ? "border-coral bg-coral-soft" : ""}`}
+                          className="input py-1"
                           onChange={(e) => setScore(o.id, c.id, Number(e.target.value))}
                         >
                           {[1, 2, 3, 4, 5].map((n) => (

@@ -21,6 +21,7 @@ export function Verdict({ d, poll }: { d: Dilemma; poll: PollResults | null }) {
     analysis: analysisId ? labelOf(d.options, analysisId) : null,
     analysisName: w ? "weighted comparison" : "pros & cons list",
     ruledOut: weightedSummary(d).filter((r) => r.ruledOut).map((r) => labelOf(d.options, r.optionId)),
+    open: (poll?.options.length ?? d.options.length) === 0,
     seed,
   });
 

@@ -1,5 +1,14 @@
 import type { Dilemma, Option } from "./types";
 
+/** Dealbreakers each option breaks (by text). Shared by every tool. */
+export function brokenBy(d: Dilemma, optionId: string): string[] {
+  return d.dealbreakers.filter((b) => d.fails[optionId]?.[b.id]).map((b) => b.text);
+}
+
+export function isRuledOut(d: Dilemma, optionId: string): boolean {
+  return brokenBy(d, optionId).length > 0;
+}
+
 export type ProsConsSummary = {
   optionId: string;
   pros: number;
@@ -35,12 +44,8 @@ export function weightedSummary(d: Dilemma): WeightedRow[] {
   const maxTotal = crit.reduce((s, c) => s + c.weight * 5, 0);
   return d.options.map((o) => {
     let total = 0;
-    const ruledOutBy: string[] = [];
-    for (const c of crit) {
-      const s = scoreFor(d, o.id, c.id);
-      total += s * c.weight;
-      if (c.dealbreaker && s <= 1) ruledOutBy.push(c.label);
-    }
+    for (const c of crit) total += scoreFor(d, o.id, c.id) * c.weight;
+    const ruledOutBy = brokenBy(d, o.id);
     return {
       optionId: o.id,
       percent: maxTotal ? Math.round((total / maxTotal) * 100) : 0,
@@ -66,7 +71,7 @@ export function leader<T extends { optionId: string }>(
 export function prosConsLeader(d: Dilemma): string | null {
   const rows = prosConsSummary(d);
   if (rows.every((r) => r.pros === 0 && r.cons === 0)) return null;
-  return leader(rows, (r) => r.net);
+  return leader(rows, (r) => r.net, (r) => !isRuledOut(d, r.optionId));
 }
 
 export function weightedLeader(d: Dilemma): string | null {

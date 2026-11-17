@@ -1,6 +1,8 @@
 "use client";
 
-import { prosConsSummary } from "@/lib/analysis";
+import { isRuledOut, prosConsSummary } from "@/lib/analysis";
+import { DealbreakerToggle } from "./DilemmaDetails";
+import { OptionLink } from "./OptionLink";
 import { uid } from "@/lib/storage";
 import type { Dilemma, Factor } from "@/lib/types";
 
@@ -23,10 +25,14 @@ export function ProsCons({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
       <div className={`grid gap-4 ${d.options.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
         {d.options.map((o) => {
           const s = summary.find((x) => x.optionId === o.id)!;
+          const out = isRuledOut(d, o.id);
           return (
-            <div key={o.id} className="card space-y-4">
+            <div key={o.id} className={`card space-y-4 ${out ? "border-coral/40" : ""}`}>
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-display text-lg font-bold">{o.label}</h3>
+                <div>
+                  <h3 className={`font-display text-lg font-bold ${out ? "text-ink/40 line-through" : ""}`}>{o.label}</h3>
+                  <OptionLink url={o.url} />
+                </div>
                 <span
                   className={`chip shrink-0 ${s.net > 0 ? "bg-mint-soft" : s.net < 0 ? "bg-coral-soft" : "bg-white"}`}
                   title="Pros minus cons, weighted by importance"
@@ -75,6 +81,20 @@ export function ProsCons({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                   </button>
                 </div>
               ))}
+              {d.dealbreakers.length > 0 && (
+                <div className="border-t border-ink/10 pt-3">
+                  <h4 className="mb-2 text-sm font-bold text-ink/70">🚫 Dealbreakers</h4>
+                  <ul className="space-y-1.5">
+                    {d.dealbreakers.map((b) => (
+                      <li key={b.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-ink/70">{b.text}</span>
+                        <DealbreakerToggle d={d} update={update} optionId={o.id} dealbreakerId={b.id} />
+                      </li>
+                    ))}
+                  </ul>
+                  {out && <p className="mt-2 text-xs font-semibold text-coral">Ruled out in every tool.</p>}
+                </div>
+              )}
             </div>
           );
         })}

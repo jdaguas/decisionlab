@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { labelOf, prosConsLeader, weightedLeader } from "@/lib/analysis";
+import { isRuledOut, labelOf, prosConsLeader, weightedLeader } from "@/lib/analysis";
 import { juryLeader } from "@/lib/usePoll";
 import type { Dilemma, PollResults } from "@/lib/types";
 
@@ -26,6 +26,15 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
 
   const signals = [pc, w, j].filter(Boolean);
   const agree = signals.length >= 2 && signals.every((s) => s === signals[0]);
+
+  if (d.options.length < 2) {
+    return (
+      <section className="card space-y-1">
+        <h2 className="font-display text-2xl font-bold">🔨 Make the call</h2>
+        <p className="text-sm text-ink/60">Once you have at least two options, you can compare where each tool landed and record your decision here.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="card space-y-4">
@@ -64,6 +73,7 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
                 >
                   <input type="radio" name="choice" className="sr-only" value={o.id} checked={choice === o.id} onChange={() => setChoice(o.id)} />
                   {o.label}
+                  {isRuledOut(d, o.id) && <span className="ml-1 text-xs opacity-70">(breaks a dealbreaker)</span>}
                 </label>
               ))}
             </div>
