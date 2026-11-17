@@ -162,6 +162,8 @@ export function NewDilemmaWizard() {
       factors: [],
       criteria: [],
       scores: {},
+      matrix: { preset: "effort", pos: {} },
+      tree: {},
       // No options yet? Start where you can actually do something: asking friends.
       tool: filledOptions.length ? "proscons" : "jury",
       createdAt: now,

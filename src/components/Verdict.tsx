@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { labelOf, prosConsLeader, weightedLeader, weightedSummary } from "@/lib/analysis";
+import { analysisLeader, labelOf, weightedSummary } from "@/lib/analysis";
 import { juryLeader } from "@/lib/usePoll";
 import { verdict } from "@/lib/verdict";
 import type { Dilemma, PollResults } from "@/lib/types";
@@ -10,16 +10,15 @@ import { Beaker } from "./Beaker";
 export function Verdict({ d, poll }: { d: Dilemma; poll: PollResults | null }) {
   const [seed, setSeed] = useState(() => d.id.charCodeAt(0));
 
-  const w = weightedLeader(d);
-  const pc = prosConsLeader(d);
-  const analysisId = w ?? pc;
+  const a = analysisLeader(d);
+  const analysisId = a.id;
   const jury = juryLeader(poll);
 
   const v = verdict({
     jury: jury ? labelOf(d.options, jury) : null,
     juryVotes: poll?.totalVotes ?? 0,
     analysis: analysisId ? labelOf(d.options, analysisId) : null,
-    analysisName: w ? "weighted comparison" : "pros & cons list",
+    analysisName: a.name,
     ruledOut: weightedSummary(d).filter((r) => r.ruledOut).map((r) => labelOf(d.options, r.optionId)),
     open: (poll?.options.length ?? d.options.length) === 0,
     seed,

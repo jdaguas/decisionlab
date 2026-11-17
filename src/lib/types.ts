@@ -19,7 +19,26 @@ export type Criterion = {
   weight: number;
 };
 
-export type Tool = "proscons" | "weighted" | "jury";
+export type Tool = "proscons" | "weighted" | "matrix" | "tree" | "jury";
+
+/** 2×2 matrix: each option placed on two axes. x and y are 0–1, where 1 is the "better" end. */
+export type Matrix = {
+  preset: string;
+  /** Only used when preset is "custom". */
+  xLabel?: string;
+  yLabel?: string;
+  pos: Record<string, { x: number; y: number }>;
+};
+
+/** One possible result of choosing an option. */
+export type Outcome = {
+  id: string;
+  text: string;
+  /** 0–100, how likely */
+  chance: number;
+  /** -2 (awful) … +2 (great) */
+  value: number;
+};
 
 export type Dilemma = {
   id: string;
@@ -33,6 +52,9 @@ export type Dilemma = {
   criteria: Criterion[];
   /** scores[optionId][criterionId] = 1–5 */
   scores: Record<string, Record<string, number>>;
+  matrix: Matrix;
+  /** tree[optionId] = possible outcomes of that option */
+  tree: Record<string, Outcome[]>;
   tool: Tool;
   poll?: { token: string; ownerKey?: string; shareDealbreakers?: boolean; createdAt: string };
   outcome?: { optionId: string; note: string; decidedAt: string };

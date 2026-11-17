@@ -20,6 +20,8 @@ function normalize(raw: Dilemma & { mode?: string; method?: string }): Dilemma {
     factors: raw.factors ?? [],
     criteria: (raw.criteria ?? []).map(({ id, label, weight }) => ({ id, label, weight })),
     scores: raw.scores ?? {},
+    matrix: raw.matrix ?? { preset: "effort", pos: {} },
+    tree: raw.tree ?? {},
     tool,
   };
 }

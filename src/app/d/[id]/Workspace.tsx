@@ -11,9 +11,19 @@ import { Weighted } from "@/components/Weighted";
 import { Jury, pollPayload } from "@/components/Jury";
 import { Decide } from "@/components/Decide";
 import { DilemmaDetails } from "@/components/DilemmaDetails";
+import { MatrixTool } from "@/components/MatrixTool";
+import { TreeTool } from "@/components/TreeTool";
 
 const GROUPS: { name: string; tools: { id: Tool; label: string }[] }[] = [
-  { name: "Think it through", tools: [{ id: "proscons", label: "Pros & Cons" }, { id: "weighted", label: "Weighted Comparison" }] },
+  {
+    name: "Think it through",
+    tools: [
+      { id: "proscons", label: "Pros & Cons" },
+      { id: "weighted", label: "Weighted" },
+      { id: "matrix", label: "2×2 Matrix" },
+      { id: "tree", label: "Decision Tree" },
+    ],
+  },
   { name: "Ask others", tools: [{ id: "jury", label: "Peer Review" }] },
 ];
 
@@ -135,6 +145,10 @@ export default function Workspace() {
         <NeedsOptions onJury={() => update({ tool: "jury" })} />
       ) : d.tool === "proscons" ? (
         <ProsCons d={d} update={update} />
+      ) : d.tool === "matrix" ? (
+        <MatrixTool d={d} update={update} />
+      ) : d.tool === "tree" ? (
+        <TreeTool d={d} update={update} />
       ) : (
         <Weighted d={d} update={update} />
       )}

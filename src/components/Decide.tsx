@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { isRuledOut, labelOf, prosConsLeader, weightedLeader } from "@/lib/analysis";
+import { isRuledOut, labelOf, matrixLeader, prosConsLeader, treeLeader, weightedLeader } from "@/lib/analysis";
 import { juryLeader } from "@/lib/usePoll";
 import type { Dilemma, PollResults } from "@/lib/types";
 
@@ -21,10 +21,12 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
 
   const pc = prosConsLeader(d);
   const w = weightedLeader(d);
+  const m = matrixLeader(d);
+  const t = treeLeader(d);
   const j = juryLeader(poll);
   const L = (id: string | null) => (id ? labelOf(d.options, id) : null);
 
-  const signals = [pc, w, j].filter(Boolean);
+  const signals = [pc, w, m, t, j].filter(Boolean);
   const agree = signals.length >= 2 && signals.every((s) => s === signals[0]);
 
   if (d.options.length < 2) {
@@ -42,9 +44,11 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
 
       <div>
         <p className="mb-2 text-sm text-ink/60">Here&apos;s where each method landed:</p>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <Signal name="Pros & Cons" value={L(pc)} hint={d.factors.length ? "Tied" : "Not tried yet"} />
           <Signal name="Weighted" value={L(w)} hint={d.criteria.length ? "Tied / all ruled out" : "Not tried yet"} />
+          <Signal name="2×2 Matrix" value={L(m)} hint={Object.keys(d.matrix.pos).length ? "Place 2+ options" : "Not tried yet"} />
+          <Signal name="Decision Tree" value={L(t)} hint={Object.values(d.tree).some((l) => l.length) ? "Tied / needs 2+" : "Not tried yet"} />
           <Signal name="Peer Review" value={L(j)} hint={!d.poll ? "Not sent out" : poll?.totalVotes ? "Tied" : "No votes yet"} />
         </div>
         {signals.length >= 2 && (
