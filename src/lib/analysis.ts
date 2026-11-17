@@ -1,4 +1,4 @@
-import type { Dilemma, Option } from "./types";
+import type { Dilemma, Matrix, Option } from "./types";
 
 /** Dealbreakers each option breaks (by text). Shared by every tool. */
 export function brokenBy(d: Dilemma, optionId: string): string[] {
@@ -83,17 +83,9 @@ export function labelOf(options: Option[], id: string | null | undefined): strin
   return options.find((o) => o.id === id)?.label ?? "—";
 }
 
-/* ---------- 2×2 matrix ---------- */
+/* ---------- 2×2 matrices ---------- */
 
-export type MatrixPreset = {
-  id: string;
-  name: string;
-  /** Axis ends: [worse, better] */
-  x: [string, string];
-  y: [string, string];
-  /** Quadrant names: top-right, top-left, bottom-right, bottom-left */
-  q: { tr: string; tl: string; br: string; bl: string };
-};
+export type MatrixPreset = Omit<Matrix, "id" | "pos"> & { id: string; name: string };
 
 export const MATRIX_PRESETS: MatrixPreset[] = [
   { id: "effort", name: "Effort vs. Payoff", x: ["More effort", "Less effort"], y: ["Low payoff", "High payoff"],
@@ -102,32 +94,33 @@ export const MATRIX_PRESETS: MatrixPreset[] = [
     q: { tr: "Safe bet", tl: "Long shot", br: "Play it safe", bl: "Avoid" } },
   { id: "cost", name: "Cost vs. Fun", x: ["Pricier", "Cheaper"], y: ["Less fun", "More fun"],
     q: { tr: "Best value", tl: "Splurge", br: "Budget pick", bl: "Skip it" } },
+  { id: "blank", name: "Blank", x: ["Worse", "Better"], y: ["Worse", "Better"],
+    q: { tr: "Sweet spot", tl: "Top-left", br: "Bottom-right", bl: "Skip it" } },
 ];
 
-export function matrixPreset(m: Dilemma["matrix"]): MatrixPreset {
-  const p = MATRIX_PRESETS.find((x) => x.id === m.preset);
-  if (p) return p;
-  const xl = m.xLabel?.trim() || "X";
-  const yl = m.yLabel?.trim() || "Y";
-  return {
-    id: "custom", name: "Custom",
-    x: [`Worse ${xl.toLowerCase()}`, `Better ${xl.toLowerCase()}`],
-    y: [`Worse ${yl.toLowerCase()}`, `Better ${yl.toLowerCase()}`],
-    q: { tr: "Sweet spot", tl: `Strong on ${yl.toLowerCase()}`, br: `Strong on ${xl.toLowerCase()}`, bl: "Skip it" },
-  };
+/** A short name for a grid, from its "better" ends: e.g. "Less effort × High payoff". */
+export function matrixName(m: Matrix): string {
+  const p = MATRIX_PRESETS.find((x) => x.x[1] === m.x[1] && x.y[1] === m.y[1] && x.id !== "blank");
+  return p ? p.name : `${m.x[1] || "X"} × ${m.y[1] || "Y"}`;
 }
 
-export function quadrantOf(p: MatrixPreset, pos: { x: number; y: number }): string {
+export function quadrantOf(m: Pick<Matrix, "q">, pos: { x: number; y: number }): string {
   const right = pos.x >= 0.5;
   const top = pos.y >= 0.5;
-  return top ? (right ? p.q.tr : p.q.tl) : right ? p.q.br : p.q.bl;
+  return top ? (right ? m.q.tr : m.q.tl) : right ? m.q.br : m.q.bl;
 }
 
-/** Option closest to the best corner (top-right), among placed options that aren't ruled out. */
+/** Average closeness to the best (top-right) corner across every grid an option is placed on. */
+export function matrixStanding(d: Dilemma, optionId: string): number | null {
+  const placed = d.matrices.map((m) => m.pos[optionId]).filter(Boolean);
+  if (!placed.length) return null;
+  return placed.reduce((s, p) => s + (p.x + p.y) / 2, 0) / placed.length;
+}
+
 export function matrixLeader(d: Dilemma): string | null {
   const rows = d.options
-    .filter((o) => d.matrix.pos[o.id])
-    .map((o) => ({ optionId: o.id, v: d.matrix.pos[o.id].x + d.matrix.pos[o.id].y }));
+    .map((o) => ({ optionId: o.id, v: matrixStanding(d, o.id) }))
+    .filter((r): r is { optionId: string; v: number } => r.v !== null);
   if (rows.length < 2) return null;
   return leader(rows, (r) => Math.round(r.v * 100), (r) => !isRuledOut(d, r.optionId));
 }
@@ -168,7 +161,7 @@ export function analysisLeader(d: Dilemma): { id: string | null; name: string } 
     [weightedLeader(d), "weighted comparison"],
     [treeLeader(d), "decision tree"],
     [prosConsLeader(d), "pros & cons list"],
-    [matrixLeader(d), "2×2 matrix"],
+    [matrixLeader(d), d.matrices.length > 1 ? "2×2 matrices" : "2×2 matrix"],
   ];
   const hit = tries.find(([id]) => id);
   return hit ? { id: hit[0], name: hit[1] } : { id: null, name: "analysis" };

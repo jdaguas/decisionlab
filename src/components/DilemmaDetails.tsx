@@ -13,18 +13,20 @@ type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
 export function removeOption(d: Dilemma, optionId: string): Partial<Dilemma> {
   const { [optionId]: _s, ...scores } = d.scores;
   const { [optionId]: _f, ...fails } = d.fails;
-  const { [optionId]: _p, ...pos } = d.matrix.pos;
   const { [optionId]: _t, ...tree } = d.tree;
   void _s;
   void _f;
-  void _p;
   void _t;
   return {
     options: d.options.filter((o) => o.id !== optionId),
     factors: d.factors.filter((f) => f.optionId !== optionId),
     scores,
     fails,
-    matrix: { ...d.matrix, pos },
+    matrices: d.matrices.map((m) => {
+      const { [optionId]: _p, ...pos } = m.pos;
+      void _p;
+      return { ...m, pos };
+    }),
     tree,
     outcome: d.outcome?.optionId === optionId ? undefined : d.outcome,
   };
@@ -143,7 +145,7 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
 export function DilemmaDetails({ d, update }: Props) {
   const hasData = (optionId: string) =>
     d.factors.some((f) => f.optionId === optionId && f.text.trim()) || !!d.scores[optionId] || !!d.fails[optionId] ||
-    !!d.matrix.pos[optionId] || !!d.tree[optionId]?.length;
+    d.matrices.some((m) => m.pos[optionId]) || !!d.tree[optionId]?.length;
 
   return (
     <div className="card space-y-5 p-4">

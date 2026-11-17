@@ -47,7 +47,7 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <Signal name="Pros & Cons" value={L(pc)} hint={d.factors.length ? "Tied" : "Not tried yet"} />
           <Signal name="Weighted" value={L(w)} hint={d.criteria.length ? "Tied / all ruled out" : "Not tried yet"} />
-          <Signal name="2×2 Matrix" value={L(m)} hint={Object.keys(d.matrix.pos).length ? "Place 2+ options" : "Not tried yet"} />
+          <Signal name="2×2 Matrix" value={L(m)} hint={d.matrices.some((m) => Object.keys(m.pos).length) ? "Tied / place 2+" : "Not tried yet"} />
           <Signal name="Decision Tree" value={L(t)} hint={Object.values(d.tree).some((l) => l.length) ? "Tied / needs 2+" : "Not tried yet"} />
           <Signal name="Peer Review" value={L(j)} hint={!d.poll ? "Not sent out" : poll?.totalVotes ? "Tied" : "No votes yet"} />
         </div>

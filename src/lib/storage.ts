@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dilemma, Tool } from "./types";
+import type { Dilemma, Matrix, Tool } from "./types";
 
 const KEY = "decisionlab:dilemmas:v1";
 const VOTER_KEY = "decisionlab:voter-id";
@@ -10,17 +10,38 @@ export function uid(): string {
 }
 
 /** Fill in fields added after a dilemma was first saved, so older saves keep working. */
-function normalize(raw: Dilemma & { mode?: string; method?: string }): Dilemma {
+type OldMatrix = { preset?: string; xLabel?: string; yLabel?: string; pos?: Matrix["pos"] };
+
+const OLD_PRESETS: Record<string, Omit<Matrix, "id" | "pos">> = {
+  effort: { x: ["More effort", "Less effort"], y: ["Low payoff", "High payoff"], q: { tr: "Quick win", tl: "Big bet", br: "Easy filler", bl: "Not worth it" } },
+  risk: { x: ["Riskier", "Safer"], y: ["Small reward", "Big reward"], q: { tr: "Safe bet", tl: "Long shot", br: "Play it safe", bl: "Avoid" } },
+  cost: { x: ["Pricier", "Cheaper"], y: ["Less fun", "More fun"], q: { tr: "Best value", tl: "Splurge", br: "Budget pick", bl: "Skip it" } },
+};
+
+/** Earlier saves had one `matrix` with a preset id; convert it to the new `matrices` list. */
+function migrateMatrix(old: OldMatrix | undefined): Matrix[] {
+  if (!old || !old.pos || !Object.keys(old.pos).length) return [];
+  const base = OLD_PRESETS[old.preset ?? ""] ?? {
+    x: [`Worse ${old.xLabel || "X"}`, `Better ${old.xLabel || "X"}`] as [string, string],
+    y: [`Worse ${old.yLabel || "Y"}`, `Better ${old.yLabel || "Y"}`] as [string, string],
+    q: { tr: "Sweet spot", tl: "Top-left", br: "Bottom-right", bl: "Skip it" },
+  };
+  return [{ id: uid(), ...base, pos: old.pos }];
+}
+
+function normalize(raw: Dilemma & { mode?: string; method?: string; matrix?: OldMatrix }): Dilemma {
   const tool: Tool = raw.tool ?? (raw.mode === "settle" ? "jury" : raw.method === "weighted" ? "weighted" : "proscons");
+  const { matrix: _old, ...rest } = raw;
+  void _old;
   return {
-    ...raw,
+    ...rest,
     options: raw.options ?? [],
     dealbreakers: raw.dealbreakers ?? [],
     fails: raw.fails ?? {},
     factors: raw.factors ?? [],
     criteria: (raw.criteria ?? []).map(({ id, label, weight }) => ({ id, label, weight })),
     scores: raw.scores ?? {},
-    matrix: raw.matrix ?? { preset: "effort", pos: {} },
+    matrices: raw.matrices ?? migrateMatrix(raw.matrix),
     tree: raw.tree ?? {},
     tool,
   };

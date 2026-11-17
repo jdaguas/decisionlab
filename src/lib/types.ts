@@ -21,12 +21,17 @@ export type Criterion = {
 
 export type Tool = "proscons" | "weighted" | "matrix" | "tree" | "jury";
 
-/** 2×2 matrix: each option placed on two axes. x and y are 0–1, where 1 is the "better" end. */
+/**
+ * One 2×2 grid. Every label is the user's own (presets just pre-fill them).
+ * Positions are 0–1 on each axis, where 1 is the "better" end (right / top).
+ */
 export type Matrix = {
-  preset: string;
-  /** Only used when preset is "custom". */
-  xLabel?: string;
-  yLabel?: string;
+  id: string;
+  /** Axis ends: [worse end, better end] */
+  x: [string, string];
+  y: [string, string];
+  /** Quadrant names: top-right (best), top-left, bottom-right, bottom-left */
+  q: { tr: string; tl: string; br: string; bl: string };
   pos: Record<string, { x: number; y: number }>;
 };
 
@@ -52,7 +57,8 @@ export type Dilemma = {
   criteria: Criterion[];
   /** scores[optionId][criterionId] = 1–5 */
   scores: Record<string, Record<string, number>>;
-  matrix: Matrix;
+  /** Several 2×2s can compare the same options on different variables. */
+  matrices: Matrix[];
   /** tree[optionId] = possible outcomes of that option */
   tree: Record<string, Outcome[]>;
   tool: Tool;
