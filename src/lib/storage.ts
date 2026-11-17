@@ -75,11 +75,22 @@ export function getDilemma(id: string): Dilemma | undefined {
   return readAll()[id];
 }
 
+let warnedFull = false;
+
 export function saveDilemma(d: Dilemma): Dilemma {
   const all = readAll();
   const next = { ...d, updatedAt: new Date().toISOString() };
   all[d.id] = next;
-  writeAll(all);
+  try {
+    writeAll(all);
+  } catch (e) {
+    // Browser storage is ~5 MB; photos are the usual culprit.
+    if (!warnedFull) {
+      warnedFull = true;
+      alert("This browser's storage is full, so your latest change couldn't be saved. Try removing a few photos or old dilemmas.");
+    }
+    console.error(e);
+  }
   return next;
 }
 

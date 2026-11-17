@@ -11,6 +11,7 @@ import { Weighted } from "@/components/Weighted";
 import { Jury, pollPayload } from "@/components/Jury";
 import { Decide } from "@/components/Decide";
 import { DilemmaDetails } from "@/components/DilemmaDetails";
+import { uploadMissingImages } from "@/lib/image";
 import { MatrixTool } from "@/components/MatrixTool";
 import { TreeTool } from "@/components/TreeTool";
 
@@ -31,9 +32,32 @@ const GROUPS: { name: string; tools: { id: Tool; label: string }[] }[] = [
  * Keeps a live jury in step with the dilemma: when you add, rename, or remove
  * options or dealbreakers, push them to the poll (creator-only, via owner key).
  */
-function useJurySync(d: Dilemma | null | undefined, server: PollResults | null, refresh: () => void) {
+function useJurySync(
+  d: Dilemma | null | undefined,
+  server: PollResults | null,
+  refresh: () => void,
+  update: (p: Partial<Dilemma>) => void,
+) {
   const [note, setNote] = useState<string | null>(null);
   const failed = useRef(false);
+
+  // A photo added after sharing gets uploaded, then the sync below sends its id.
+  const needsUpload = !!d?.poll?.ownerKey && !!d?.options.some((o) => o.image && !o.imageId);
+  const uploading = useRef(false);
+  useEffect(() => {
+    if (!needsUpload || !d || uploading.current) return;
+    uploading.current = true;
+    uploadMissingImages(d.options)
+      .then((options) => {
+        // Merge by id in case options changed while uploading.
+        const ids = new Map(options.map((o) => [o.id, o.imageId]));
+        update({ options: d.options.map((o) => (o.imageId || !ids.get(o.id) ? o : { ...o, imageId: ids.get(o.id) })) });
+      })
+      .catch(() => setNote("Couldn't upload a photo for peer review."))
+      .finally(() => {
+        uploading.current = false;
+      });
+  }, [needsUpload, d, update]);
 
   const token = d?.poll?.token;
   const ownerKey = d?.poll?.ownerKey;
@@ -42,7 +66,7 @@ function useJurySync(d: Dilemma | null | undefined, server: PollResults | null, 
   const haveSig = server ? JSON.stringify({ options: server.options, dealbreakers: server.dealbreakers }) : null;
 
   useEffect(() => {
-    if (!token || !ownerKey || !wantSig || !haveSig || wantSig === haveSig || failed.current) return;
+    if (!token || !ownerKey || !wantSig || !haveSig || wantSig === haveSig || failed.current || needsUpload) return;
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/polls/${token}`, {
@@ -62,7 +86,7 @@ function useJurySync(d: Dilemma | null | undefined, server: PollResults | null, 
       }
     }, 700);
     return () => clearTimeout(t);
-  }, [token, ownerKey, wantSig, haveSig, refresh]);
+  }, [token, ownerKey, wantSig, haveSig, refresh, needsUpload]);
 
   const pending = d?.options.length === 1 && !!token ? "Add one more option to update peer review." : null;
   return pending ?? note;
@@ -84,7 +108,6 @@ export default function Workspace() {
   const { id } = useParams<{ id: string }>();
   const [d, setD] = useState<Dilemma | null | undefined>(undefined);
   const poll = usePoll(d?.poll?.token);
-  const syncNote = useJurySync(d, poll.data, poll.refresh);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -94,6 +117,7 @@ export default function Workspace() {
   const update = useCallback((patch: Partial<Dilemma>) => {
     setD((cur) => (cur ? saveDilemma({ ...cur, ...patch }) : cur));
   }, []);
+  const syncNote = useJurySync(d, poll.data, poll.refresh, update);
 
   if (d === undefined) return null;
   if (d === null) {

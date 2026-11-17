@@ -3,6 +3,7 @@
 import { isRuledOut, prosConsSummary } from "@/lib/analysis";
 import { DealbreakerToggle } from "./DilemmaDetails";
 import { OptionLink } from "./OptionLink";
+import { OptionImage } from "./OptionImage";
 import { uid } from "@/lib/storage";
 import type { Dilemma, Factor } from "@/lib/types";
 
@@ -29,9 +30,12 @@ export function ProsCons({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
           return (
             <div key={o.id} className={`card space-y-4 ${out ? "border-coral/40" : ""}`}>
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="flex items-start gap-3">
+                  <OptionImage o={o} size="thumb" className="h-14 w-14" />
+                  <div>
                   <h3 className={`font-display text-lg font-bold ${out ? "text-ink/40 line-through" : ""}`}>{o.label}</h3>
                   <OptionLink url={o.url} />
+                  </div>
                 </div>
                 <span
                   className={`chip shrink-0 ${s.net > 0 ? "bg-mint-soft" : s.net < 0 ? "bg-coral-soft" : "bg-white"}`}

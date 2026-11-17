@@ -4,6 +4,7 @@ import { MAX_URL, safeUrl } from "../links";
 
 const ID_RE = /^[A-Za-z0-9-]{1,64}$/;
 export const TOKEN_RE = /^[A-Za-z0-9_-]{10,64}$/;
+export const IMAGE_ID_RE = /^[A-Za-z0-9_-]{20,40}$/;
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -30,7 +31,14 @@ export function parsePollDetails(body: Record<string, unknown>): Result<{ option
       if (!safe) return { ok: false, error: "Option links must be http(s) URLs." };
       url = safe;
     }
-    cleanOptions.push(url ? { id: o.id, label: o.label.trim(), url } : { id: o.id, label: o.label.trim() });
+    if (o.imageId != null && (typeof o.imageId !== "string" || !IMAGE_ID_RE.test(o.imageId))) {
+      return { ok: false, error: "Invalid option photo." };
+    }
+    // Only the uploaded photo's id is accepted; raw image data never goes into a poll.
+    const clean: Option = { id: o.id, label: o.label.trim() };
+    if (url) clean.url = url;
+    if (o.imageId) clean.imageId = o.imageId;
+    cleanOptions.push(clean);
   }
   if (!Array.isArray(dealbreakers) || dealbreakers.length > 6) {
     return { ok: false, error: "Up to 6 dealbreakers." };

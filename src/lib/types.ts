@@ -1,4 +1,13 @@
-export type Option = { id: string; label: string; /** optional http(s) link, e.g. a listing or menu */ url?: string };
+export type Option = {
+  id: string;
+  label: string;
+  /** optional http(s) link, e.g. a listing or menu */
+  url?: string;
+  /** optional photo, compressed, as a data: URL. Stays in this browser. */
+  image?: string;
+  /** id of the uploaded copy, set only once the option is shared for peer review */
+  imageId?: string;
+};
 
 /** A non-negotiable condition, e.g. "Can't miss the deadline". Shared by every tool. */
 export type Dealbreaker = { id: string; text: string };

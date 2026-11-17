@@ -5,6 +5,7 @@ import { FEELINGS, feelingFor, isRuledOut, treeLeader } from "@/lib/analysis";
 import { uid } from "@/lib/storage";
 import { addChild, chanceSum, countNodes, insertAfter, mapNode, removeNode, scoreOf, scoreOfBranches } from "@/lib/tree";
 import type { Dilemma, TreeNode } from "@/lib/types";
+import { OptionImage } from "./OptionImage";
 
 type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
 
@@ -232,6 +233,7 @@ export function TreeTool({ d, update }: Props) {
                     best === o.id ? "border-grape bg-grape-soft/50" : out ? "border-coral/40 bg-white" : "border-ink/15 bg-white"
                   }`}
                 >
+                  <OptionImage o={o} size="thumb" className="h-8 w-8" />
                   <span className={`font-display font-semibold ${out ? "text-ink/40 line-through" : ""}`}>{o.label}</span>
                   {score !== null && <Score v={score} />}
                   {score !== null && (

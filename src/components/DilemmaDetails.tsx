@@ -6,6 +6,9 @@ import type { Dilemma } from "@/lib/types";
 import { parseOptionText, safeUrl } from "@/lib/links";
 import { brokenBy } from "@/lib/analysis";
 import { OptionLink } from "./OptionLink";
+import { OptionImage } from "./OptionImage";
+import { compressImage } from "@/lib/image";
+import type { Option } from "@/lib/types";
 
 type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
 
@@ -39,6 +42,50 @@ export function addOption(d: Dilemma, text: string): Partial<Dilemma> | null {
   return { options: [...d.options, url ? { id: uid(), label: l, url } : { id: uid(), label: l }] };
 }
 
+/** "Option A", "Option B"… skipping names already taken. */
+export function nextPhotoLabel(taken: string[]): string {
+  const used = new Set(taken.map((t) => t.toLowerCase()));
+  for (let i = 0; i < 26; i++) {
+    const l = `Option ${String.fromCharCode(65 + i)}`;
+    if (!used.has(l.toLowerCase())) return l;
+  }
+  return `Option ${taken.length + 1}`;
+}
+
+/** Hidden file input + a trigger. Shrinks each photo before handing it over. */
+export function PhotoPicker({
+  multiple, onPhotos, children, className, label,
+}: { multiple?: boolean; onPhotos: (dataUrls: string[]) => void; children: React.ReactNode; className?: string; label: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <label className={`cursor-pointer ${className ?? ""}`} aria-label={label}>
+      <input
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        className="sr-only"
+        onChange={async (e) => {
+          const files = [...(e.target.files ?? [])];
+          e.target.value = "";
+          if (!files.length) return;
+          setBusy(true);
+          try {
+            onPhotos(await Promise.all(files.map(compressImage)));
+          } catch (err) {
+            alert(err instanceof Error ? err.message : "Couldn't add that photo.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      {busy ? <span className="text-xs text-ink/50">Adding…</span> : children}
+    </label>
+  );
+}
+
+const withoutUrl = ({ url: _u, ...rest }: Option): Option => (void _u, rest);
+const withoutImage = ({ image: _i, imageId: _id, ...rest }: Option): Option => (void _i, void _id, rest);
+
 function AddInline({ placeholder, onAdd, max }: { placeholder: string; onAdd: (v: string) => boolean; max: number }) {
   const [v, setV] = useState("");
   const submit = () => {
@@ -71,13 +118,26 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
   const [editingLink, setEditingLink] = useState(false);
   const [linkDraft, setLinkDraft] = useState(o.url ?? "");
   const [linkError, setLinkError] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState(o.label);
+  const [dragOver, setDragOver] = useState(false);
   const broken = brokenBy(d, o.id);
+  const patchOption = (fn: (x: Option) => Option) => update({ options: d.options.map((x) => (x.id === o.id ? fn(x) : x)) });
+  // A new photo gets a new upload id later, so drop the old one.
+  const setPhoto = (dataUrl: string) => patchOption((x) => ({ ...withoutImage(x), image: dataUrl }));
+  const saveName = () => {
+    const v = nameDraft.trim().slice(0, 80);
+    const taken = d.options.some((x) => x.id !== o.id && x.label.toLowerCase() === v.toLowerCase());
+    if (v && !taken) patchOption((x) => ({ ...x, label: v }));
+    else setNameDraft(o.label);
+    setRenaming(false);
+  };
 
   const saveLink = () => {
     const v = linkDraft.trim();
     const url = v ? safeUrl(v) : null;
     if (v && !url) return setLinkError(true);
-    update({ options: d.options.map((x) => (x.id === o.id ? (url ? { ...x, url } : { id: x.id, label: x.label }) : x)) });
+    update({ options: d.options.map((x) => (x.id === o.id ? (url ? { ...x, url } : withoutUrl(x)) : x)) });
     setEditingLink(false);
     setLinkError(false);
   };
@@ -85,8 +145,26 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
   return (
     <li
       className={`group relative flex min-h-28 flex-col justify-between gap-3 rounded-lg border bg-white p-4 transition ${
-        broken.length ? "border-coral/40" : "border-ink/10 hover:border-ink/25"
+        dragOver ? "border-grape ring-2 ring-grape/20" : broken.length ? "border-coral/40" : "border-ink/10 hover:border-ink/25"
       }`}
+      onDragOver={(e) => {
+        if ([...e.dataTransfer.items].some((i) => i.type.startsWith("image/"))) {
+          e.preventDefault();
+          setDragOver(true);
+        }
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={async (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/"));
+        if (!f) return;
+        try {
+          setPhoto(await compressImage(f));
+        } catch (err) {
+          alert(err instanceof Error ? err.message : "Couldn't add that photo.");
+        }
+      }}
     >
       <button
         className="absolute top-2 right-2 rounded px-1.5 text-ink/30 hover:bg-ink/5 hover:text-ink"
@@ -95,9 +173,49 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
       >
         ✕
       </button>
-      <p className={`pr-6 font-display text-lg font-semibold leading-snug ${broken.length ? "text-ink/40 line-through" : ""}`}>
-        {o.label}
-      </p>
+      {(o.image || o.imageId) && (
+        <div className="relative -mx-1 -mt-1">
+          <OptionImage o={o} size="card" className={broken.length ? "opacity-50 grayscale" : ""} />
+          <div className="absolute right-1.5 bottom-1.5 flex gap-1 opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">
+            <PhotoPicker label={`Replace photo for ${o.label}`} onPhotos={([p]) => setPhoto(p)} className="rounded bg-white/90 px-2 py-0.5 text-xs font-medium shadow-sm hover:bg-white">
+              Replace
+            </PhotoPicker>
+            <button className="rounded bg-white/90 px-2 py-0.5 text-xs font-medium shadow-sm hover:bg-white hover:text-coral" onClick={() => patchOption(withoutImage)}>
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
+      {renaming ? (
+        <input
+          autoFocus
+          className="input mr-6 py-1 font-display text-lg font-semibold"
+          value={nameDraft}
+          maxLength={80}
+          aria-label={`Rename ${o.label}`}
+          onChange={(e) => setNameDraft(e.target.value)}
+          onBlur={saveName}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") saveName();
+            if (e.key === "Escape") {
+              setNameDraft(o.label);
+              setRenaming(false);
+            }
+          }}
+        />
+      ) : (
+        <button
+          className={`pr-6 text-left font-display text-lg font-semibold leading-snug decoration-dotted underline-offset-4 hover:underline ${broken.length ? "text-ink/40 line-through" : ""}`}
+          title="Click to rename"
+          aria-label={`${o.label}. Click to rename.`}
+          onClick={() => {
+            setNameDraft(o.label);
+            setRenaming(true);
+          }}
+        >
+          {o.label}
+        </button>
+      )}
 
       <div className="space-y-1.5">
         {editingLink ? (
@@ -129,9 +247,16 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
             <button className="text-xs text-ink/40 hover:text-ink" onClick={() => setEditingLink(true)}>Edit</button>
           </div>
         ) : (
-          <button className="text-xs font-medium text-ink/40 hover:text-grape" onClick={() => setEditingLink(true)}>
-            🔗 Add link
-          </button>
+          <span className="flex gap-3">
+            <button className="text-xs font-medium text-ink/40 hover:text-grape" onClick={() => setEditingLink(true)}>
+              🔗 Add link
+            </button>
+            {!o.image && !o.imageId && (
+              <PhotoPicker label={`Add a photo to ${o.label}`} onPhotos={([p]) => setPhoto(p)} className="text-xs font-medium text-ink/40 hover:text-grape">
+                📷 Add photo
+              </PhotoPicker>
+            )}
+          </span>
         )}
         {linkError && <p className="text-xs text-coral">That doesn&apos;t look like a web link (http or https).</p>}
         {broken.length > 0 && (
@@ -170,6 +295,24 @@ export function DilemmaDetails({ d, update }: Props) {
               <span className="text-sm text-ink/50">
                 {d.options.length === 0 ? "No options yet. You're gathering opinions." : d.options.length === 1 ? "Add one more to compare." : "Another option?"}
               </span>
+              <PhotoPicker
+                multiple
+                label="Add photos as options"
+                className="text-xs font-medium text-ink/50 hover:text-grape"
+                onPhotos={(photos) => {
+                  const room = 6 - d.options.length;
+                  const taken = d.options.map((x) => x.label);
+                  const added = photos.slice(0, room).map((image) => {
+                    const label = nextPhotoLabel(taken);
+                    taken.push(label);
+                    return { id: uid(), label, image };
+                  });
+                  if (photos.length > room) alert(`Only ${room} more option${room === 1 ? "" : "s"} fit (6 max).`);
+                  update({ options: [...d.options, ...added] });
+                }}
+              >
+                📷 Add photos as options
+              </PhotoPicker>
               <AddInline
                 placeholder="Add an option or paste a link"
                 max={600}

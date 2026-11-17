@@ -7,6 +7,7 @@ import { getVoterId } from "@/lib/storage";
 import { usePoll } from "@/lib/usePoll";
 import { JuryResults } from "@/components/JuryResults";
 import { OptionLink } from "@/components/OptionLink";
+import { OptionImage } from "@/components/OptionImage";
 
 /** Marker stored locally when a friend answered an open-ended poll. */
 const OPINION = "__opinion__";
@@ -104,6 +105,29 @@ export default function JuryVote() {
           {!open && (
             <fieldset>
               <legend className="label">What should they do?</legend>
+              {data.options.some((o) => o.imageId) ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {data.options.map((o) => (
+                    <label
+                      key={o.id}
+                      className={`cursor-pointer overflow-hidden rounded-lg border-2 bg-white transition ${
+                        choice === o.id ? "border-grape ring-2 ring-grape/25" : "border-ink/10 hover:border-ink/30"
+                      }`}
+                    >
+                      <input type="radio" name="vote" className="sr-only" value={o.id} checked={choice === o.id} onChange={() => setChoice(o.id)} />
+                      {o.imageId ? (
+                        <OptionImage o={o} size="hero" className="rounded-none" />
+                      ) : (
+                        <div className="grid aspect-square place-items-center bg-ink/5 text-xs text-ink/40">No photo</div>
+                      )}
+                      <div className={`flex items-center justify-between gap-2 px-3 py-2 text-sm font-semibold ${choice === o.id ? "bg-grape text-white" : ""}`}>
+                        <span>{choice === o.id && "✓ "}{o.label}</span>
+                        {o.url && <OptionLink url={o.url} label={false} className={choice === o.id ? "text-white" : ""} />}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
               <div className="grid gap-2">
                 {data.options.map((o) => (
                   <label
@@ -120,6 +144,7 @@ export default function JuryVote() {
                   </label>
                 ))}
               </div>
+              )}
             </fieldset>
           )}
           <div>

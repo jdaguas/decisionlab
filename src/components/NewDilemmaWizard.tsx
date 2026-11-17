@@ -5,6 +5,7 @@ import { useState } from "react";
 import { saveDilemma, uid } from "@/lib/storage";
 import type { Dilemma } from "@/lib/types";
 import { parseOptionText } from "@/lib/links";
+import { nextPhotoLabel, PhotoPicker } from "./DilemmaDetails";
 
 const EXAMPLES = [
   "Should I go to the concert Wednesday even though my project is due Friday?",
@@ -16,7 +17,7 @@ const STEPS = ["Dilemma", "Options", "Dealbreakers"] as const;
 
 /** One text box: type, press Enter, it becomes a removable chip. Nothing is pre-filled. */
 function ChipInput({
-  items, setItems, draft, setDraft, placeholder, max, maxLength, label, suggestions, display = (v) => v, cards = false,
+  items, setItems, draft, setDraft, placeholder, max, maxLength, label, suggestions, display = (v) => v, cards = false, images = {}, extra,
 }: {
   items: string[];
   setItems: (v: string[]) => void;
@@ -31,6 +32,10 @@ function ChipInput({
   display?: (v: string) => string;
   /** Show items as roomy cards (options) instead of small chips (dealbreakers). */
   cards?: boolean;
+  /** Photos by item text, shown on cards. */
+  images?: Record<string, string>;
+  /** Extra control under the input (e.g. "Add photos"). */
+  extra?: React.ReactNode;
 }) {
   const has = (v: string) => items.some((x) => x.toLowerCase() === v.toLowerCase());
   const add = (v: string) => {
@@ -49,8 +54,12 @@ function ChipInput({
             const linked = shown.endsWith(" 🔗");
             return (
               <li key={v} title={v} className="relative flex min-h-20 flex-col justify-between gap-2 rounded-lg border border-ink/10 bg-white p-4">
+                {images[v] && (
+                  // eslint-disable-next-line @next/next/no-img-element -- local data: URL preview
+                  <img src={images[v]} alt={v} className="-mx-1 -mt-1 aspect-[4/3] w-[calc(100%+0.5rem)] rounded-md object-cover" />
+                )}
                 <button
-                  className="absolute top-2 right-2 rounded px-1.5 text-ink/30 hover:bg-ink/5 hover:text-ink"
+                  className={`absolute top-2 right-2 z-10 rounded px-1.5 hover:text-ink ${images[v] ? "bg-white/90 text-ink/60 shadow-sm" : "text-ink/30 hover:bg-ink/5"}`}
                   aria-label={`Remove ${label.toLowerCase()} ${v}`}
                   onClick={() => setItems(items.filter((x) => x !== v))}
                 >
@@ -101,6 +110,7 @@ function ChipInput({
           </button>
         </form>
       )}
+      {extra && items.length < max && extra}
       {open.length > 0 && items.length < max && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-ink/40">Suggestions:</span>
@@ -130,6 +140,7 @@ export function NewDilemmaWizard() {
 
   const [optDraft, setOptDraft] = useState("");
   const [dbDraft, setDbDraft] = useState("");
+  const [photos, setPhotos] = useState<Record<string, string>>({});
 
   // Whatever is still typed in the box counts too, so clicking Next never loses it.
   const withDraft = (items: string[], draft: string, max: number) => {
@@ -156,7 +167,7 @@ export function NewDilemmaWizard() {
     const d: Dilemma = {
       id: uid(),
       question: question.trim(),
-      options: filledOptions.map((t) => ({ id: uid(), ...parseOptionText(t) })),
+      options: filledOptions.map((t) => ({ id: uid(), ...parseOptionText(t), ...(photos[t] ? { image: photos[t] } : {}) })),
       dealbreakers: filledDb.map((text) => ({ id: uid(), text })),
       fails: {},
       factors: [],
@@ -239,6 +250,28 @@ export function NewDilemmaWizard() {
             maxLength={600}
             label="Option"
             cards
+            images={photos}
+            extra={
+              <PhotoPicker
+                multiple
+                label="Add photos as options"
+                className="inline-flex text-sm font-medium text-grape hover:underline"
+                onPhotos={(dataUrls) => {
+                  const room = 6 - options.length;
+                  const taken = [...options];
+                  const next: Record<string, string> = {};
+                  for (const img of dataUrls.slice(0, room)) {
+                    const l = nextPhotoLabel(taken);
+                    taken.push(l);
+                    next[l] = img;
+                  }
+                  setOptions(taken);
+                  setPhotos((p) => ({ ...p, ...next }));
+                }}
+              >
+                📷 Choosing between things you can see, like outfits? Add photos as options
+              </PhotoPicker>
+            }
             display={(v) => {
               const p = parseOptionText(v);
               return p.url ? `${p.label} 🔗` : p.label;

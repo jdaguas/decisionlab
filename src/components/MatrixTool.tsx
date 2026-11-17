@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { isRuledOut, MATRIX_PRESETS, matrixLeader, matrixName, matrixStanding, quadrantOf, type MatrixPreset } from "@/lib/analysis";
 import { uid } from "@/lib/storage";
 import type { Dilemma, Matrix } from "@/lib/types";
+import { OptionImage } from "./OptionImage";
 
 type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
 type Pos = { x: number; y: number };
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 const CHIP_COLORS = ["bg-grape", "bg-mint", "bg-coral", "bg-amber-500", "bg-sky-500", "bg-pink-500"];
+// Written out in full so Tailwind generates them (it can't see classes built from strings).
+const RING_COLORS = ["ring-grape", "ring-mint", "ring-coral", "ring-amber-500", "ring-sky-500", "ring-pink-500"];
 
 function fromPreset(p: Pick<MatrixPreset, "x" | "y" | "q">): Matrix {
   return { id: uid(), x: [...p.x] as [string, string], y: [...p.y] as [string, string], q: { ...p.q }, pos: {} };
@@ -189,7 +192,11 @@ export function MatrixTool({ d, update }: Props) {
         } ${out ? "text-ink/40 line-through" : ""}`}
         style={pos ? { position: "absolute", left: `${pos.x * 100}%`, top: `${(1 - pos.y) * 100}%`, transform: "translate(-50%, -50%)", zIndex: floating ? 20 : 10 } : undefined}
       >
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${colorOf(id)}`} />
+        {o.image || o.imageId ? (
+          <OptionImage o={o} size="dot" className={`ring-2 ring-offset-1 ${RING_COLORS[d.options.findIndex((x) => x.id === id) % RING_COLORS.length]}`} />
+        ) : (
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${colorOf(id)}`} />
+        )}
         {o.label}
       </button>
     );

@@ -4,6 +4,7 @@ import { scoreFor, weightedSummary } from "@/lib/analysis";
 import { uid } from "@/lib/storage";
 import type { Criterion, Dilemma } from "@/lib/types";
 import { DealbreakerToggle } from "./DilemmaDetails";
+import { OptionImage } from "./OptionImage";
 
 const SUGGESTIONS = ["Cost", "Time", "Fun", "Stress", "Long-term impact", "Time with friends"];
 const SCORE_HINT = ["", "awful", "meh", "okay", "good", "great"];
@@ -40,7 +41,7 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                 <th />
                 {d.options.map((o) => (
                   <th key={o.id} className="px-2 pb-2">
-                    <span className="chip bg-white text-xs text-ink">{o.label}</span>
+                    <span className="chip gap-1.5 bg-white text-xs text-ink"><OptionImage o={o} size="dot" />{o.label}</span>
                   </th>
                 ))}
               </tr>
@@ -85,7 +86,7 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                     key={o.id}
                     className={`bg-grape-soft/60 px-2 pb-1.5 ${i === 0 ? "border-l-2 border-ink/10" : ""}`}
                   >
-                    <span className="chip bg-white text-xs normal-case text-ink">{o.label}</span>
+                    <span className="chip gap-1.5 bg-white text-xs normal-case text-ink"><OptionImage o={o} size="dot" />{o.label}</span>
                   </th>
                 ))}
                 <th />

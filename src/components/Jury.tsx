@@ -7,6 +7,7 @@ import { JuryResults } from "./JuryResults";
 import { Verdict } from "./Verdict";
 import { Beaker } from "./Beaker";
 import { addOption } from "./DilemmaDetails";
+import { uploadMissingImages } from "@/lib/image";
 
 type Props = {
   d: Dilemma;
@@ -18,7 +19,10 @@ type Props = {
 /** What the jury sees: the shared options and (if allowed) dealbreakers. */
 export function pollPayload(d: Dilemma, share = d.poll?.shareDealbreakers ?? true) {
   return {
-    options: d.options.length === 1 ? null : d.options,
+    // Never send local photo data; only the id of an already-uploaded copy.
+    options: d.options.length === 1 ? null : d.options.map(({ id, label, url, imageId }) => ({
+      id, label, ...(url ? { url } : {}), ...(imageId ? { imageId } : {}),
+    })),
     dealbreakers: share ? d.dealbreakers.map((b) => b.text) : [],
   };
 }
@@ -31,14 +35,16 @@ export function Jury({ d, update, poll, syncNote }: Props) {
   const open = d.options.length === 0;
 
   async function convene() {
-    const payload = pollPayload(d, share);
-    if (!payload.options) {
+    if (d.options.length === 1) {
       setErr("Add a second option first, or remove the one you have to collect open opinions.");
       return;
     }
     setCreating(true);
     setErr(null);
     try {
+      // Photos stay in your browser until now: upload them so reviewers can see them.
+      const options = await uploadMissingImages(d.options);
+      const payload = pollPayload({ ...d, options }, share);
       const res = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,6 +53,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Something went wrong.");
       update({
+        options,
         poll: { token: body.token, ownerKey: body.ownerKey, shareDealbreakers: share, createdAt: new Date().toISOString() },
       });
     } catch (e) {
@@ -73,7 +80,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
           {open
             ? "No options yet? No problem. Friends share their opinions and suggestions, and you can turn the good ones into options with one click."
             : "Friends pick an option and can say why. No sign-up needed."}{" "}
-          Your pros, cons, and ratings stay private.
+          Your pros, cons, and ratings stay private{d.options.some((o) => o.image) ? "; option photos are uploaded so reviewers can see them" : ""}.
         </p>
         {shareToggle(share, setShare)}
         <button className="btn-primary text-lg" onClick={convene} disabled={creating}>

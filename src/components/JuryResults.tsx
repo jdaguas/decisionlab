@@ -3,6 +3,7 @@
 import { labelOf } from "@/lib/analysis";
 import type { PollResults } from "@/lib/types";
 import { OptionLink } from "./OptionLink";
+import { OptionImage } from "./OptionImage";
 
 const COLORS = ["bg-grape", "bg-mint", "bg-coral", "bg-sun", "bg-sky-400", "bg-pink-400"];
 
@@ -26,7 +27,8 @@ export function JuryResults({ p, highlight, onAdopt, adopted }: Props) {
             return (
               <div key={o.id}>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="font-semibold">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <OptionImage o={o} size="thumb" className="h-8 w-8" />
                     {o.label} <OptionLink url={o.url} label={false} />{" "}
                     {highlight === o.id && <span className="text-xs text-grape">(your vote)</span>}
                   </span>

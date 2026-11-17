@@ -4,6 +4,7 @@ import { useState } from "react";
 import { isRuledOut, labelOf, matrixLeader, prosConsLeader, treeLeader, weightedLeader } from "@/lib/analysis";
 import { juryLeader } from "@/lib/usePoll";
 import type { Dilemma, PollResults } from "@/lib/types";
+import { OptionImage } from "./OptionImage";
 
 function Signal({ name, value, hint }: { name: string; value: string | null; hint: string }) {
   return (
@@ -76,6 +77,7 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
                   className={`chip cursor-pointer px-4 py-1.5 ${choice === o.id ? "bg-grape text-white" : "bg-white hover:bg-grape-soft"}`}
                 >
                   <input type="radio" name="choice" className="sr-only" value={o.id} checked={choice === o.id} onChange={() => setChoice(o.id)} />
+                  <OptionImage o={o} size="dot" className="mr-1.5" />
                   {o.label}
                   {isRuledOut(d, o.id) && <span className="ml-1 text-xs opacity-70">(breaks a dealbreaker)</span>}
                 </label>
