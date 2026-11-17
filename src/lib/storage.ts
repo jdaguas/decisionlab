@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dilemma, Matrix, Tool } from "./types";
+import type { Dilemma, Matrix, Tool, TreeNode } from "./types";
 
 const KEY = "decisionlab:dilemmas:v1";
 const VOTER_KEY = "decisionlab:voter-id";
@@ -29,6 +29,11 @@ function migrateMatrix(old: OldMatrix | undefined): Matrix[] {
   return [{ id: uid(), ...base, pos: old.pos }];
 }
 
+/** Earlier trees were flat outcome lists without `children`. */
+function toNode(n: Partial<TreeNode> & { id: string }): TreeNode {
+  return { ...n, text: n.text ?? "", children: (n.children ?? []).map(toNode) };
+}
+
 function normalize(raw: Dilemma & { mode?: string; method?: string; matrix?: OldMatrix }): Dilemma {
   const tool: Tool = raw.tool ?? (raw.mode === "settle" ? "jury" : raw.method === "weighted" ? "weighted" : "proscons");
   const { matrix: _old, ...rest } = raw;
@@ -42,7 +47,7 @@ function normalize(raw: Dilemma & { mode?: string; method?: string; matrix?: Old
     criteria: (raw.criteria ?? []).map(({ id, label, weight }) => ({ id, label, weight })),
     scores: raw.scores ?? {},
     matrices: raw.matrices ?? migrateMatrix(raw.matrix),
-    tree: raw.tree ?? {},
+    tree: Object.fromEntries(Object.entries(raw.tree ?? {}).map(([k, list]) => [k, (list ?? []).map(toNode)])),
     tool,
   };
 }

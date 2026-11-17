@@ -35,14 +35,17 @@ export type Matrix = {
   pos: Record<string, { x: number; y: number }>;
 };
 
-/** One possible result of choosing an option. */
-export type Outcome = {
+/** One branch of the decision tree. Branches nest to any depth. */
+export type TreeNode = {
   id: string;
   text: string;
-  /** 0–100, how likely */
-  chance: number;
-  /** -2 (awful) … +2 (great) */
-  value: number;
+  note?: string;
+  /** 0–100: set when this branch is a "what if" scenario */
+  chance?: number | null;
+  /** -2 (awful) … +2 (great): how you'd feel */
+  value?: number | null;
+  children: TreeNode[];
+  collapsed?: boolean;
 };
 
 export type Dilemma = {
@@ -59,8 +62,8 @@ export type Dilemma = {
   scores: Record<string, Record<string, number>>;
   /** Several 2×2s can compare the same options on different variables. */
   matrices: Matrix[];
-  /** tree[optionId] = possible outcomes of that option */
-  tree: Record<string, Outcome[]>;
+  /** tree[optionId] = that option's branches */
+  tree: Record<string, TreeNode[]>;
   tool: Tool;
   poll?: { token: string; ownerKey?: string; shareDealbreakers?: boolean; createdAt: string };
   outcome?: { optionId: string; note: string; decidedAt: string };

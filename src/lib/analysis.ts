@@ -1,4 +1,5 @@
 import type { Dilemma, Matrix, Option } from "./types";
+import { scoreOfBranches } from "./tree";
 
 /** Dealbreakers each option breaks (by text). Shared by every tool. */
 export function brokenBy(d: Dilemma, optionId: string): string[] {
@@ -135,21 +136,18 @@ export const FEELINGS = [
   { value: 2, emoji: "🤩", label: "Great" },
 ];
 
+/** Nearest feeling label; exact ties (e.g. −1.5) round toward neutral so we never overstate. */
 export function feelingFor(v: number) {
-  return FEELINGS.reduce((best, f) => (Math.abs(f.value - v) < Math.abs(best.value - v) ? f : best));
-}
-
-/** Probability-weighted average feeling (-2…+2). Chances are scaled so they sum to 100%. */
-export function expectedValue(outcomes: { chance: number; value: number }[]): number | null {
-  const valid = outcomes.filter((o) => o.chance > 0);
-  const total = valid.reduce((s, o) => s + o.chance, 0);
-  if (!total) return null;
-  return valid.reduce((s, o) => s + (o.chance / total) * o.value, 0);
+  return FEELINGS.reduce((best, f) => {
+    const df = Math.abs(f.value - v);
+    const db = Math.abs(best.value - v);
+    return df < db || (df === db && Math.abs(f.value) < Math.abs(best.value)) ? f : best;
+  });
 }
 
 export function treeLeader(d: Dilemma): string | null {
   const rows = d.options
-    .map((o) => ({ optionId: o.id, ev: expectedValue((d.tree[o.id] ?? []).filter((x) => x.text.trim())) }))
+    .map((o) => ({ optionId: o.id, ev: scoreOfBranches(d.tree[o.id] ?? []) }))
     .filter((r): r is { optionId: string; ev: number } => r.ev !== null);
   if (rows.length < 2) return null;
   return leader(rows, (r) => Math.round(r.ev * 100), (r) => !isRuledOut(d, r.optionId));

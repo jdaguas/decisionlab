@@ -1,148 +1,273 @@
 "use client";
 
-import { expectedValue, FEELINGS, feelingFor, isRuledOut, treeLeader } from "@/lib/analysis";
+import { useState } from "react";
+import { FEELINGS, feelingFor, isRuledOut, treeLeader } from "@/lib/analysis";
 import { uid } from "@/lib/storage";
-import type { Dilemma, Outcome } from "@/lib/types";
+import { addChild, chanceSum, countNodes, insertAfter, mapNode, removeNode, scoreOf, scoreOfBranches } from "@/lib/tree";
+import type { Dilemma, TreeNode } from "@/lib/types";
 
 type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
 
-const STARTER: Omit<Outcome, "id">[] = [
-  { text: "It goes great", chance: 30, value: 2 },
-  { text: "It's fine", chance: 50, value: 0 },
-  { text: "It goes badly", chance: 20, value: -2 },
+const fmt = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`;
+const blank = (p: Partial<TreeNode> = {}): TreeNode => ({ id: uid(), text: "", children: [], ...p });
+
+const BREAK_DOWN = () => ["Cost", "Time", "How I'd feel"].map((text) => blank({ text }));
+const WHAT_IF = () => [
+  blank({ text: "Best case", chance: 30, value: 2 }),
+  blank({ text: "Most likely", chance: 50, value: 0 }),
+  blank({ text: "Worst case", chance: 20, value: -2 }),
 ];
 
-const fmt = (ev: number) => `${ev > 0 ? "+" : ""}${ev.toFixed(1)}`;
+type Ctx = {
+  setList: (fn: (list: TreeNode[]) => TreeNode[]) => void;
+  focusId: string | null;
+  setFocusId: (id: string | null) => void;
+  optionLabel: string;
+};
 
-/** Decision tree: question → options → possible outcomes (chance × how you'd feel). */
+function Score({ v, approx }: { v: number; approx?: boolean }) {
+  const f = feelingFor(v);
+  return (
+    <span className="shrink-0 rounded bg-ink/[0.04] px-1.5 py-0.5 text-xs text-ink/70" title={`${f.label} (${fmt(v)})`}>
+      {approx && "≈ "}
+      {f.emoji} <span className="font-mono">{fmt(v)}</span>
+    </span>
+  );
+}
+
+function FeelingPicker({ value, onPick, label }: { value: number; onPick: (v: number | null) => void; label: string }) {
+  return (
+    <span className="flex shrink-0 items-center rounded-md border border-ink/15" role="radiogroup" aria-label={label}>
+      {FEELINGS.map((f) => (
+        <button
+          key={f.value}
+          role="radio"
+          aria-checked={value === f.value}
+          aria-label={f.label}
+          title={f.label}
+          onClick={() => onPick(f.value)}
+          className={`px-1 py-0.5 text-sm first:rounded-l-md ${value === f.value ? "bg-grape-soft" : "opacity-40 grayscale hover:opacity-100 hover:grayscale-0"}`}
+        >
+          {f.emoji}
+        </button>
+      ))}
+      <button className="px-1 text-xs text-ink/30 hover:text-ink" aria-label="Remove feeling" title="Remove feeling" onClick={() => onPick(null)}>
+        ✕
+      </button>
+    </span>
+  );
+}
+
+/** Branches at one level, with a warning when "what if" chances don't add to 100%. */
+function Branches({ list, ctx }: { list: TreeNode[]; ctx: Ctx }) {
+  const sum = chanceSum(list);
+  return (
+    <ul className="space-y-1">
+      {list.map((n) => (
+        <Branch key={n.id} n={n} ctx={ctx} />
+      ))}
+      {sum !== null && sum !== 100 && (
+        <li className="pl-6 text-[11px] text-ink/40">Chances here add to {sum}%, so they&apos;re scaled to 100%.</li>
+      )}
+    </ul>
+  );
+}
+
+function Branch({ n, ctx }: { n: TreeNode; ctx: Ctx }) {
+  const patch = (p: Partial<TreeNode>) => ctx.setList((l) => mapNode(l, n.id, (x) => ({ ...x, ...p })));
+  const addSub = () => {
+    const c = blank();
+    ctx.setList((l) => addChild(l, n.id, c));
+    ctx.setFocusId(c.id);
+  };
+  const rolled = n.children.length ? scoreOf(n) : null;
+  const name = n.text || "branch";
+
+  return (
+    <li className="relative pl-6 before:absolute before:top-4 before:left-0 before:w-5 before:border-t-2 before:border-ink/15">
+      <div className="group flex flex-wrap items-center gap-1.5 py-0.5">
+        {n.children.length > 0 ? (
+          <button
+            className="w-4 shrink-0 text-xs text-ink/40 hover:text-ink"
+            aria-label={n.collapsed ? `Expand ${name}` : `Collapse ${name}`}
+            aria-expanded={!n.collapsed}
+            onClick={() => patch({ collapsed: !n.collapsed })}
+          >
+            {n.collapsed ? "▸" : "▾"}
+          </button>
+        ) : (
+          <span className="w-4 shrink-0" />
+        )}
+        <input
+          className="min-w-32 flex-1 rounded border border-transparent bg-transparent px-1.5 py-1 text-sm outline-none hover:border-ink/15 focus:border-grape focus:bg-white sm:max-w-xs"
+          value={n.text}
+          maxLength={80}
+          placeholder="Name this branch…"
+          aria-label={`Branch under ${ctx.optionLabel}`}
+          autoFocus={ctx.focusId === n.id}
+          onFocus={() => ctx.focusId === n.id && ctx.setFocusId(null)}
+          onChange={(e) => patch({ text: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const s = blank();
+              ctx.setList((l) => insertAfter(l, n.id, s));
+              ctx.setFocusId(s.id);
+            }
+            if (e.key === "Backspace" && !n.text && !n.children.length) {
+              e.preventDefault();
+              ctx.setList((l) => removeNode(l, n.id));
+            }
+          }}
+        />
+        {n.collapsed && <span className="text-xs text-ink/40">({countNodes(n.children)} inside)</span>}
+        {rolled !== null && <Score v={rolled} approx />}
+
+        {n.chance != null && (
+          <label className="flex shrink-0 items-center gap-0.5 rounded-md border border-ink/15 bg-white px-1.5 py-0.5 text-xs" title="How likely is this?">
+            <input
+              type="number" min={0} max={100} step={5}
+              className="w-10 bg-transparent text-right font-mono outline-none"
+              value={n.chance}
+              aria-label={`Chance of ${name}`}
+              onChange={(e) => patch({ chance: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+            />
+            %
+            <button className="ml-0.5 text-ink/30 hover:text-ink" aria-label="Remove chance" title="Remove chance" onClick={() => patch({ chance: null })}>✕</button>
+          </label>
+        )}
+        {n.value != null && (
+          <FeelingPicker value={n.value} label={`How you'd feel about ${name}`} onPick={(v) => patch({ value: v })} />
+        )}
+
+        <span className="flex shrink-0 items-center gap-0.5 opacity-60 transition group-focus-within:opacity-100 group-hover:opacity-100">
+          <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={addSub} title="Add a branch inside this one">+ Branch</button>
+          {n.chance == null && (
+            <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={() => patch({ chance: 50, value: n.value ?? 0 })} title="Make this a what-if scenario with a chance">
+              % What if
+            </button>
+          )}
+          {n.value == null && (
+            <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={() => patch({ value: 0 })} title="How would you feel about this?">
+              😐 Feeling
+            </button>
+          )}
+          {n.note == null && (
+            <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={() => patch({ note: "" })} aria-label={`Add a note to ${name}`} title="Add a note">📝</button>
+          )}
+          <button
+            className="btn-ghost px-1.5 py-0.5 text-xs hover:text-coral"
+            aria-label={`Delete ${name}`}
+            title="Delete branch"
+            onClick={() => {
+              if (n.children.length && !confirm(`Delete “${name}” and the ${countNodes(n.children)} branches inside it?`)) return;
+              ctx.setList((l) => removeNode(l, n.id));
+            }}
+          >
+            ✕
+          </button>
+        </span>
+      </div>
+
+      {n.note != null && (
+        <div className="ml-6 flex items-start gap-1">
+          <textarea
+            rows={1}
+            maxLength={280}
+            autoFocus={!n.note}
+            className="input mb-1 resize-y py-1 text-xs text-ink/70"
+            placeholder="Note…"
+            value={n.note}
+            aria-label={`Note for ${name}`}
+            onChange={(e) => patch({ note: e.target.value })}
+          />
+          <button className="btn-ghost px-1 text-xs" aria-label="Remove note" onClick={() => patch({ note: undefined })}>✕</button>
+        </div>
+      )}
+
+      {n.children.length > 0 && !n.collapsed && (
+        <div className="ml-2 border-l-2 border-ink/15">
+          <Branches list={n.children} ctx={ctx} />
+        </div>
+      )}
+    </li>
+  );
+}
+
+/** Decision tree: question → options → branches, nested as deep as you like. */
 export function TreeTool({ d, update }: Props) {
+  const [focusId, setFocusId] = useState<string | null>(null);
   const best = treeLeader(d);
-  const outcomesOf = (optionId: string) => d.tree[optionId] ?? [];
-  const setOutcomes = (optionId: string, list: Outcome[]) => update({ tree: { ...d.tree, [optionId]: list } });
-  const patch = (optionId: string, id: string, p: Partial<Outcome>) =>
-    setOutcomes(optionId, outcomesOf(optionId).map((o) => (o.id === id ? { ...o, ...p } : o)));
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink/60">
-        For each option, list what could realistically happen, how likely it is, and how you&apos;d feel about it.
-        The tree weighs each outcome by its chance to give you an <em>expected outcome</em>.
+        Break each option down and follow it where it leads, e.g. <em>Cost → Short term → Adoption fees</em>. Add a{" "}
+        <strong>% What if</strong> to imagine scenarios, and a <strong>feeling</strong> to say how you&apos;d feel. Scores roll up
+        the tree. Press Enter for the next branch.
       </p>
 
       <div className="card overflow-x-auto">
-        <div className="flex min-w-[720px] items-stretch">
-          {/* root */}
-          <div className="flex w-40 shrink-0 items-center">
-            <div className="w-full rounded-md bg-ink px-3 py-2 text-sm font-semibold text-paper">{d.question}</div>
-          </div>
-
-          <ul className="flex-1 space-y-4 border-l-2 border-ink/15 py-2">
-            {d.options.map((o) => {
-              const list = outcomesOf(o.id);
-              const named = list.filter((x) => x.text.trim());
-              const ev = expectedValue(named);
-              const sum = named.reduce((s, x) => s + x.chance, 0);
-              const out = isRuledOut(d, o.id);
-              return (
-                <li key={o.id} className="relative flex items-center pl-6 before:absolute before:top-1/2 before:left-0 before:w-6 before:border-t-2 before:border-ink/15">
-                  {/* option node */}
-                  <div
-                    className={`w-44 shrink-0 rounded-md border px-3 py-2 ${
-                      best === o.id ? "border-grape bg-grape-soft" : out ? "border-coral/40 bg-white" : "border-ink/15 bg-white"
-                    }`}
-                  >
-                    <p className={`font-display font-semibold leading-snug ${out ? "text-ink/40 line-through" : ""}`}>{o.label}</p>
-                    {ev !== null ? (
-                      <p className="mt-1 text-xs text-ink/60">
-                        Expected: {feelingFor(ev).emoji} {feelingFor(ev).label}{" "}
-                        <span className="font-mono">({fmt(ev)})</span>
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-ink/40">Add outcomes →</p>
-                    )}
-                    {best === o.id && <p className="mt-1 text-[11px] font-semibold text-grape">★ Best expected outcome</p>}
-                    {named.length > 0 && sum !== 100 && (
-                      <p className="mt-1 text-[11px] text-ink/40">Chances add to {sum}%; scaled to 100%.</p>
-                    )}
-                  </div>
-
-                  {/* outcomes */}
-                  <div className="relative ml-6 flex-1 before:absolute before:top-1/2 before:-left-6 before:w-6 before:border-t-2 before:border-ink/15">
-                    <ul className="space-y-1.5 border-l-2 border-ink/15 py-1">
-                      {list.map((x) => (
-                        <li key={x.id} className="relative flex items-center gap-2 pl-4 before:absolute before:top-1/2 before:left-0 before:w-4 before:border-t-2 before:border-ink/15">
-                          <input
-                            className="input w-40 py-1 text-sm"
-                            value={x.text}
-                            maxLength={80}
-                            placeholder="What could happen?"
-                            aria-label={`Outcome for ${o.label}`}
-                            autoFocus={!x.text}
-                            onChange={(e) => patch(o.id, x.id, { text: e.target.value })}
-                          />
-                          <label className="flex items-center gap-1 text-xs text-ink/60" title="How likely is this?">
-                            <input
-                              type="range" min={0} max={100} step={5} value={x.chance}
-                              className="w-16 accent-grape"
-                              aria-label={`Chance of “${x.text || "outcome"}”`}
-                              onChange={(e) => patch(o.id, x.id, { chance: Number(e.target.value) })}
-                            />
-                            <span className="w-8 font-mono">{x.chance}%</span>
-                          </label>
-                          <div className="flex rounded-md border border-ink/15" role="radiogroup" aria-label={`How you'd feel about “${x.text || "outcome"}”`}>
-                            {FEELINGS.map((f) => (
-                              <button
-                                key={f.value}
-                                role="radio"
-                                aria-checked={x.value === f.value}
-                                title={f.label}
-                                aria-label={f.label}
-                                onClick={() => patch(o.id, x.id, { value: f.value })}
-                                className={`px-1 py-0.5 text-sm transition first:rounded-l-md last:rounded-r-md ${
-                                  x.value === f.value ? "bg-grape-soft" : "opacity-40 grayscale hover:opacity-100 hover:grayscale-0"
-                                }`}
-                              >
-                                {f.emoji}
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            className="btn-ghost px-1"
-                            aria-label="Remove outcome"
-                            onClick={() => setOutcomes(o.id, list.filter((y) => y.id !== x.id))}
-                          >
-                            ✕
-                          </button>
-                        </li>
-                      ))}
-                      <li className="relative flex gap-2 pl-4 before:absolute before:top-1/2 before:left-0 before:w-4 before:border-t-2 before:border-dashed before:border-ink/15">
-                        <button
-                          className="btn-ghost text-xs"
-                          onClick={() => setOutcomes(o.id, [...list, { id: uid(), text: "", chance: 25, value: 0 }])}
-                        >
-                          + Add outcome
+        <div className="mb-3 inline-block rounded-md bg-ink px-3 py-2 text-sm font-semibold text-paper">{d.question}</div>
+        <ul className="ml-3 space-y-4 border-l-2 border-ink/15">
+          {d.options.map((o) => {
+            const list = d.tree[o.id] ?? [];
+            const ctx: Ctx = {
+              optionLabel: o.label,
+              focusId,
+              setFocusId,
+              setList: (fn) => update({ tree: { ...d.tree, [o.id]: fn(d.tree[o.id] ?? []) } }),
+            };
+            const score = scoreOfBranches(list);
+            const out = isRuledOut(d, o.id);
+            const addTop = () => {
+              const n = blank();
+              ctx.setList((l) => [...l, n]);
+              setFocusId(n.id);
+            };
+            return (
+              <li key={o.id} className="relative pl-6 before:absolute before:top-5 before:left-0 before:w-5 before:border-t-2 before:border-ink/15">
+                <div
+                  className={`flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 ${
+                    best === o.id ? "border-grape bg-grape-soft/50" : out ? "border-coral/40 bg-white" : "border-ink/15 bg-white"
+                  }`}
+                >
+                  <span className={`font-display font-semibold ${out ? "text-ink/40 line-through" : ""}`}>{o.label}</span>
+                  {score !== null && <Score v={score} />}
+                  {score !== null && (
+                    <span className="text-xs text-ink/50">
+                      {feelingFor(score).label} overall{best === o.id && <span className="ml-1 font-semibold text-grape">★ best so far</span>}
+                    </span>
+                  )}
+                  <span className="ml-auto flex gap-1">
+                    <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={addTop}>+ Branch</button>
+                    {list.length === 0 && (
+                      <>
+                        <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={() => ctx.setList(() => BREAK_DOWN())} title="Start with Cost, Time, How I'd feel">
+                          Break it down
                         </button>
-                        {list.length === 0 && (
-                          <button
-                            className="btn-ghost text-xs"
-                            onClick={() => setOutcomes(o.id, STARTER.map((s) => ({ ...s, id: uid() })))}
-                          >
-                            Start with best / likely / worst
-                          </button>
-                        )}
-                      </li>
-                    </ul>
+                        <button className="btn-ghost px-1.5 py-0.5 text-xs" onClick={() => ctx.setList(() => WHAT_IF())} title="Start with best / likely / worst case">
+                          What if…
+                        </button>
+                      </>
+                    )}
+                  </span>
+                </div>
+                {list.length > 0 && (
+                  <div className="ml-4 border-l-2 border-ink/15">
+                    <Branches list={list} ctx={ctx} />
                   </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <p className="text-xs text-ink/50">
-        Expected outcome runs from 😫 −2 (awful) to 🤩 +2 (great). Your chances are guesses, and that&apos;s fine. The point
-        is to notice which risks you&apos;re actually worried about.
+        Feelings run from 😫 −2 (awful) to 🤩 +2 (great). Scenarios are averaged by their chances; plain categories
+        count equally. Your chances are guesses, and that&apos;s fine. The point is to notice what you&apos;re actually
+        worried about.
       </p>
     </div>
   );
