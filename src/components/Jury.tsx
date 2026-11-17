@@ -127,6 +127,11 @@ export function Jury({ d, update, poll, syncNote }: Props) {
             </span>
           </div>
           {poll.error && <p className="mb-2 text-sm text-coral">{poll.error}</p>}
+          {poll.error?.includes("doesn't exist") && (
+            <button className="btn-secondary mb-2 text-sm" onClick={() => update({ poll: undefined })}>
+              Start a new jury link
+            </button>
+          )}
           {poll.data ? (
             <JuryResults
               p={poll.data}

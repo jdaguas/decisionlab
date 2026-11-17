@@ -121,10 +121,17 @@ class SupabaseStore implements PollStore {
   }
 }
 
-const g = globalThis as unknown as { __pollStore?: PollStore };
+/**
+ * The store is cached on globalThis so dev hot-reloads don't wipe it. Bump
+ * STORE_VERSION whenever the store's shape changes, so a long-running dev
+ * server can't keep using an instance built from older code.
+ */
+const STORE_VERSION = 2;
+const g = globalThis as unknown as { __pollStore?: PollStore; __pollStoreVersion?: number };
 
 export function pollStore(): PollStore {
-  if (g.__pollStore) return g.__pollStore;
+  if (g.__pollStore && g.__pollStoreVersion === STORE_VERSION) return g.__pollStore;
+  g.__pollStoreVersion = STORE_VERSION;
   const url = process.env.SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SECRET_KEY?.trim();
   g.__pollStore = url && key
@@ -135,8 +142,14 @@ export function pollStore(): PollStore {
 
 export async function results(token: string): Promise<PollResults | null> {
   const store = pollStore();
-  const poll = await store.get(token);
-  if (!poll) return null;
+  const raw = await store.get(token);
+  if (!raw) return null;
+  // Tolerate malformed rows rather than crashing the whole page.
+  const poll = {
+    ...raw,
+    options: Array.isArray(raw.options) ? raw.options.filter((o) => o && typeof o.id === "string") : [],
+    dealbreakers: Array.isArray(raw.dealbreakers) ? raw.dealbreakers.filter((b) => typeof b === "string") : [],
+  };
   const votes = await store.votes(poll.id);
   const tallies: Record<string, number> = Object.fromEntries(poll.options.map((o) => [o.id, 0]));
   const open = poll.options.length === 0;
