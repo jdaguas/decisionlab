@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { deleteDilemma, listDilemmas } from "@/lib/storage";
 import { labelOf } from "@/lib/analysis";
-import { Beaker } from "@/components/Beaker";
 import type { Dilemma } from "@/lib/types";
 
 export default function Home() {
@@ -32,9 +31,6 @@ export default function Home() {
           <Link href="/new" className="btn-primary text-lg">
             + Start a dilemma
           </Link>
-        </div>
-        <div aria-hidden className="pointer-events-none absolute -right-4 -bottom-8 hidden rotate-12 sm:block">
-          <Beaker className="h-56 w-56" />
         </div>
       </section>
 
