@@ -1,6 +1,6 @@
 # DecisionLab
 
-**Overthink it, but make it fun.** Enter a dilemma, weigh it with Pros & Cons or a Weighted Comparison, put it before a Friend Jury, and record what you decided.
+**Overthink it, but make it fun.** Describe a dilemma once (options and dealbreakers optional), weigh it with Pros & Cons or a Weighted Comparison, send it out for Peer Review by friends, and record your conclusion.
 
 ## Core task (v1)
 
@@ -15,7 +15,7 @@
 | Piece | Where it lives | Why |
 |---|---|---|
 | Dilemmas, pros/cons, criteria, outcome | Browser `localStorage` | No login for v1; private reasoning never leaves your device |
-| Friend Jury polls and votes | `/api/polls/*` → Supabase (or in-memory fallback) | Has to be shared across people |
+| Peer Review polls and responses | `/api/polls/*` → Supabase (or in-memory fallback) | Has to be shared across people |
 
 - Share links use 128-bit random tokens, so they can't be guessed.
 - Only the question and options are sent to the server. Pros, cons, and ratings stay local.

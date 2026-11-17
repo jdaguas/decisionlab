@@ -59,7 +59,7 @@ export default function JuryVote() {
   if (!data) {
     return (
       <div className="card mx-auto max-w-md text-center">
-        {error ? <p className="font-semibold">{error}</p> : <p className="text-ink/50">Entering the courtroom…</p>}
+        {error ? <p className="font-semibold">{error}</p> : <p className="text-ink/50">Opening the lab notebook…</p>}
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function JuryVote() {
     <div className="mx-auto max-w-xl space-y-6">
       <div className="text-center">
         <p className="mb-2 text-sm font-bold uppercase tracking-widest text-grape">
-          🧪 {open ? "Your opinion has been requested" : "You've been summoned for jury duty"}
+          🧪 {open ? "Your input has been requested" : "You've been asked to peer review"}
         </p>
         <h1 className="font-display text-3xl font-semibold tracking-tight">{data.question}</h1>
       </div>
@@ -127,7 +127,7 @@ export default function JuryVote() {
               {open ? (
                 "What do you think? Suggest an option or share your take."
               ) : (
-                <>Your closing argument <span className="font-normal text-ink/50">(optional, but it helps!)</span></>
+                <>Reviewer comments <span className="font-normal text-ink/50">(optional, but it helps!)</span></>
               )}
             </label>
             <textarea
@@ -143,7 +143,7 @@ export default function JuryVote() {
             disabled={(open ? !reason.trim() : !choice) || submitting}
             onClick={submit}
           >
-            {submitting ? "Filing…" : open ? "Share my opinion" : "Cast my vote"}
+            {submitting ? "Submitting…" : open ? "Share my opinion" : "Cast my vote"}
           </button>
           <p className="text-center text-xs text-ink/50">Anonymous: your name isn&apos;t collected. What you write is visible to everyone with this link.</p>
         </div>

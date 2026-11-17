@@ -30,7 +30,7 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
   if (d.options.length < 2) {
     return (
       <section className="card space-y-1">
-        <h2 className="font-display text-2xl font-bold">🔨 Make the call</h2>
+        <h2 className="font-display text-2xl font-bold">📝 Your conclusion</h2>
         <p className="text-sm text-ink/60">Once you have at least two options, you can compare where each tool landed and record your decision here.</p>
       </section>
     );
@@ -38,14 +38,14 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
 
   return (
     <section className="card space-y-4">
-      <h2 className="font-display text-2xl font-bold">🔨 Make the call</h2>
+      <h2 className="font-display text-2xl font-bold">📝 Your conclusion</h2>
 
       <div>
         <p className="mb-2 text-sm text-ink/60">Here&apos;s where each method landed:</p>
         <div className="grid gap-2 sm:grid-cols-3">
           <Signal name="Pros & Cons" value={L(pc)} hint={d.factors.length ? "Tied" : "Not tried yet"} />
           <Signal name="Weighted" value={L(w)} hint={d.criteria.length ? "Tied / all ruled out" : "Not tried yet"} />
-          <Signal name="Friend Jury" value={L(j)} hint={!d.poll ? "Not convened" : poll?.totalVotes ? "Tied" : "No votes yet"} />
+          <Signal name="Peer Review" value={L(j)} hint={!d.poll ? "Not sent out" : poll?.totalVotes ? "Tied" : "No votes yet"} />
         </div>
         {signals.length >= 2 && (
           <p className={`mt-2 text-sm font-semibold ${agree ? "text-mint" : "text-coral"}`}>

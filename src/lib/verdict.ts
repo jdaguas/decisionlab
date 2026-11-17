@@ -1,15 +1,16 @@
 /**
- * Playful, clearly nonbinding verdicts. Deterministic given a seed so the
- * verdict doesn't flicker on every poll refresh; "reroll" bumps the seed.
+ * Playful, clearly nonbinding "findings" written in lab-report voice.
+ * Deterministic given a seed so they don't flicker on every poll refresh;
+ * "re-run" bumps the seed.
  */
 
 type Input = {
-  jury: string | null; // leading option label from votes, or null (tie / no votes)
+  jury: string | null; // option the peer reviewers favor, or null (tie / no responses)
   juryVotes: number;
   analysis: string | null; // leading option from Think It Through (weighted, else pros/cons)
   analysisName: string; // "weighted comparison" | "pros & cons list"
   ruledOut: string[]; // labels of options eliminated by dealbreakers
-  open: boolean; // no options yet: friends are giving opinions, not votes
+  open: boolean; // no options yet: reviewers are giving opinions, not votes
   seed: number;
 };
 
@@ -22,8 +23,8 @@ export function verdict(i: Input): { headline: string; detail: string } {
 
   if (i.juryVotes === 0) {
     return {
-      headline: "The courtroom is empty.",
-      detail: "Share the jury link. Even a judge needs someone to bang the gavel at.",
+      headline: "No data yet. The sample size is zero.",
+      detail: "Send the peer review link to a few friends. Every good experiment needs more than one observer.",
     };
   }
 
@@ -32,13 +33,13 @@ export function verdict(i: Input): { headline: string; detail: string } {
     return {
       headline: pick(
         [
-          `Open hearing: ${n} witness${n === 1 ? " has" : "es have"} testified.`,
-          `The jury has thoughts. ${n} of them, to be exact.`,
-          `Testimony is pouring in (${n} so far).`,
+          `Early observations: ${n} reviewer${n === 1 ? " has" : "s have"} weighed in.`,
+          `Qualitative data is coming in (n\u00a0=\u00a0${n}).`,
+          `${n} peer${n === 1 ? "" : "s"} submitted notes. Hypotheses forming…`,
         ],
         s,
       ),
-      detail: "No options on the table yet. Turn the best suggestions into options, then let the jury vote.",
+      detail: "There are no options to test yet. Turn the best suggestions into options, then ask reviewers to vote.",
     };
   }
 
@@ -46,15 +47,15 @@ export function verdict(i: Input): { headline: string; detail: string } {
     return {
       headline: pick(
         [
-          "Hung jury! The court is in shambles.",
-          "The jury is deadlocked and has ordered pizza.",
-          "Mistrial: your friends are exactly as torn as you are.",
+          "Inconclusive. The reviewers split evenly.",
+          "Results are a statistical tie. More data needed.",
+          "Your peers are exactly as torn as you are. Fascinating.",
         ],
         s,
       ),
       detail: i.analysis
         ? `Tiebreaker on file: your ${i.analysisName} leans “${i.analysis}.”`
-        : "Consider a tiebreaker: try Think It Through, or recruit one more juror.",
+        : "Try a tiebreaker: run a Think It Through method, or recruit one more reviewer.",
     };
   }
 
@@ -64,12 +65,12 @@ export function verdict(i: Input): { headline: string; detail: string } {
     return {
       headline: pick(
         [
-          `The jury votes ${J}, but one of your dealbreakers has stormed the courtroom.`,
-          `Popular opinion says ${J}. Your own dealbreaker says absolutely not.`,
+          `Reviewers favor ${J}, but it fails one of your dealbreakers.`,
+          `Peer consensus: ${J}. Your safety protocol: absolutely not.`,
         ],
         s,
       ),
-      detail: "Your friends picked an option you said was a dealbreaker. Who's right? (You are. You're the judge.)",
+      detail: "Your friends picked an option you marked as a dealbreaker. Maybe they don't know about it, or maybe it matters less than you think. You decide.",
     };
   }
 
@@ -77,13 +78,13 @@ export function verdict(i: Input): { headline: string; detail: string } {
     return {
       headline: pick(
         [
-          `The jury has spoken: ${J}.`,
-          `Order in the court! The people demand ${J}.`,
-          `By popular decree: ${J}. The gavel has dropped.`,
+          `Peer review is in: ${J}.`,
+          `The reviewers recommend ${J}.`,
+          `Preliminary finding: your peers lean ${J}.`,
         ],
         s,
       ),
-      detail: "No analysis on file yet. Switch to Think It Through to cross-examine this verdict.",
+      detail: "There's no analysis to compare against yet. Run a Think It Through method to see if your own reasoning replicates this result.",
     };
   }
 
@@ -91,13 +92,13 @@ export function verdict(i: Input): { headline: string; detail: string } {
     return {
       headline: pick(
         [
-          `Unanimous-ish: the jury AND your ${i.analysisName} both say ${J}.`,
-          `Head and heart agree. ${J} it is (probably).`,
-          `Case closed? Your friends and your spreadsheet-brain both back ${J}.`,
+          `Replicated! Your peers AND your ${i.analysisName} both point to ${J}.`,
+          `Strong agreement: two independent methods favor ${J}.`,
+          `The results hold up. Head and heart both say ${J}.`,
         ],
         s,
       ),
-      detail: "When your reasoning and your friends line up, that's a pretty good sign.",
+      detail: "When your own reasoning and your friends agree, that's a pretty good sign.",
     };
   }
 
@@ -105,12 +106,12 @@ export function verdict(i: Input): { headline: string; detail: string } {
   return {
     headline: pick(
       [
-        `The jury votes ${J}, but your ${i.analysisName} has filed a formal objection for ${A}.`,
-        `Objection! Your friends say ${J}; your priorities say ${A}.`,
-        `${J} wins the popular vote. ${A} wins the debate in your head.`,
+        `Conflicting results: reviewers say ${J}, your ${i.analysisName} says ${A}.`,
+        `Failed to replicate. Your peers favor ${J}; your priorities favor ${A}.`,
+        `${J} wins peer review. ${A} wins your own analysis.`,
       ],
       s,
     ),
-    detail: "Your friends and your own analysis disagree. Read their reasons: are they weighing something you aren't, or the other way around?",
+    detail: "Your friends and your analysis disagree. Read their comments: are they weighing something you aren't, or the other way around?",
   };
 }

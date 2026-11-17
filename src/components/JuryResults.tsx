@@ -44,9 +44,9 @@ export function JuryResults({ p, highlight, onAdopt, adopted }: Props) {
       )}
 
       <div>
-        <h4 className="mb-2 font-display font-bold">{open ? "💬 Opinions so far" : "🗣️ Closing arguments"}</h4>
+        <h4 className="mb-2 font-display font-bold">{open ? "💬 Reviewer notes" : "💬 Reviewer comments"}</h4>
         {p.reasons.length === 0 ? (
-          <p className="text-sm text-ink/50">{open ? "No opinions yet." : "No arguments filed yet."}</p>
+          <p className="text-sm text-ink/50">{open ? "No notes yet." : "No comments yet."}</p>
         ) : (
           <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
             {p.reasons.map((r, i) => (

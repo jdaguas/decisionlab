@@ -10,7 +10,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "DecisionLab: overthink it, but make it fun",
   description:
-    "Work through a dilemma with pros & cons or weighted criteria, then put it before a jury of friends.",
+    "Work through a dilemma with pros & cons or weighted criteria, then send it out for peer review by friends.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
         <footer className="py-6 text-center text-xs text-ink/50">
-          DecisionLab helps you think. It doesn&apos;t know the right answer, and neither does the jury.
+          DecisionLab helps you think. It doesn&apos;t know the right answer, and neither do your reviewers.
         </footer>
       </body>
     </html>

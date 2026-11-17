@@ -14,7 +14,7 @@ import { DilemmaDetails } from "@/components/DilemmaDetails";
 
 const GROUPS: { name: string; tools: { id: Tool; label: string }[] }[] = [
   { name: "Think it through", tools: [{ id: "proscons", label: "Pros & Cons" }, { id: "weighted", label: "Weighted Comparison" }] },
-  { name: "Settle this", tools: [{ id: "jury", label: "Friend Jury" }] },
+  { name: "Ask others", tools: [{ id: "jury", label: "Peer Review" }] },
 ];
 
 /**
@@ -42,19 +42,19 @@ function useJurySync(d: Dilemma | null | undefined, server: PollResults | null, 
         });
         if (!res.ok) {
           failed.current = true;
-          setNote("Couldn't update the jury with your latest changes.");
+          setNote("Couldn't update peer review with your latest changes.");
           return;
         }
-        setNote("✓ Jury updated with your latest options.");
+        setNote("✓ Peer review updated with your latest options.");
         refresh();
       } catch {
-        setNote("Couldn't reach the jury. Will retry when you edit again.");
+        setNote("Couldn't reach peer review. Will retry when you edit again.");
       }
     }, 700);
     return () => clearTimeout(t);
   }, [token, ownerKey, wantSig, haveSig, refresh]);
 
-  const pending = d?.options.length === 1 && !!token ? "Add one more option to update the jury." : null;
+  const pending = d?.options.length === 1 && !!token ? "Add one more option to update peer review." : null;
   return pending ?? note;
 }
 
@@ -65,7 +65,7 @@ function NeedsOptions({ onJury }: { onJury: () => void }) {
       <p className="mx-auto max-w-md text-sm text-ink/60">
         Add at least two options in the box above, or ask your friends for ideas first.
       </p>
-      <button className="btn-secondary" onClick={onJury}>Ask the Friend Jury for ideas →</button>
+      <button className="btn-secondary" onClick={onJury}>Ask your peers for ideas →</button>
     </div>
   );
 }

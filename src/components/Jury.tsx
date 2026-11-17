@@ -60,7 +60,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
     d.dealbreakers.length > 0 && (
       <label className="flex items-center justify-center gap-2 text-sm text-ink/70">
         <input type="checkbox" className="h-4 w-4 accent-grape" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        Show my dealbreakers to the jury
+        Show my dealbreakers to reviewers
       </label>
     );
 
@@ -68,7 +68,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
     return (
       <div className="card space-y-4 text-center">
         <Beaker className="mx-auto h-14 w-14" />
-        <h3 className="font-display text-2xl font-bold">{open ? "Ask your friends what they think" : "Put it before a Friend Jury"}</h3>
+        <h3 className="font-display text-2xl font-bold">{open ? "Ask your peers what they think" : "Send it out for peer review"}</h3>
         <p className="mx-auto max-w-md text-ink/70">
           {open
             ? "No options yet? No problem. Friends share their opinions and suggestions, and you can turn the good ones into options with one click."
@@ -77,7 +77,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
         </p>
         {shareToggle(share, setShare)}
         <button className="btn-primary text-lg" onClick={convene} disabled={creating}>
-          {creating ? "Summoning the jury…" : open ? "Get a link for opinions" : "Convene the jury"}
+          {creating ? "Preparing the link…" : open ? "Get a link for opinions" : "Request peer review"}
         </button>
         {err && <p role="status" className="text-sm font-medium text-coral">{err}</p>}
       </div>
@@ -91,9 +91,9 @@ export function Jury({ d, update, poll, syncNote }: Props) {
     <div className="grid gap-4 md:grid-cols-5">
       <div className="space-y-4 md:col-span-3">
         <div className="card space-y-3">
-          <h3 className="font-display text-lg font-bold">📨 Invite your jury</h3>
+          <h3 className="font-display text-lg font-bold">📨 Invite reviewers</h3>
           <div className="flex gap-2">
-            <input className="input font-mono text-sm" readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Jury link" />
+            <input className="input font-mono text-sm" readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Peer review link" />
             <button
               className="btn-primary shrink-0"
               onClick={async () => {
@@ -112,8 +112,8 @@ export function Jury({ d, update, poll, syncNote }: Props) {
             </Link>{" "}
             to see what friends see.
             {canEdit
-              ? " When you change your options or dealbreakers, the jury sees the update automatically."
-              : " (This jury was created before live updates existed, so it won't pick up new options.)"}
+              ? " When you change your options or dealbreakers, reviewers see the update automatically."
+              : " (This link was created before live updates existed, so it won't pick up new options.)"}
           </p>
           {canEdit && shareToggle(d.poll.shareDealbreakers ?? true, (v) => update({ poll: { ...d.poll!, shareDealbreakers: v } }))}
           {syncNote && <p className="text-xs text-ink/50">{syncNote}</p>}
@@ -121,7 +121,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
 
         <div className="card">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-display text-lg font-bold">{poll.data && !poll.data.options.length ? "Open hearing" : "Live tally"}</h3>
+            <h3 className="font-display text-lg font-bold">{poll.data && !poll.data.options.length ? "Open call for input" : "Live results"}</h3>
             <span className="flex items-center gap-1 text-xs text-ink/50">
               <span className="h-2 w-2 animate-pulse rounded-full bg-mint" /> updates automatically
             </span>
@@ -129,7 +129,7 @@ export function Jury({ d, update, poll, syncNote }: Props) {
           {poll.error && <p className="mb-2 text-sm text-coral">{poll.error}</p>}
           {poll.error?.includes("doesn't exist") && (
             <button className="btn-secondary mb-2 text-sm" onClick={() => update({ poll: undefined })}>
-              Start a new jury link
+              Start a new peer review link
             </button>
           )}
           {poll.data ? (

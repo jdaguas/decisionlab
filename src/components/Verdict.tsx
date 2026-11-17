@@ -29,20 +29,20 @@ export function Verdict({ d, poll }: { d: Dilemma; poll: PollResults | null }) {
     <div className="card sticky top-4 space-y-4 bg-ink text-paper border-ink">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-sun">
-          <Beaker className="h-4 w-4" liquid="var(--color-sun)" stroke="var(--color-paper)" /> The Verdict
+          <Beaker className="h-4 w-4" liquid="var(--color-sun)" stroke="var(--color-paper)" /> Findings
         </span>
         <button
           className="rounded-md px-2 py-0.5 text-xs text-paper/60 hover:bg-paper/10 hover:text-paper"
           onClick={() => setSeed((s) => s + 1)}
-          title="Same facts, new drama"
+          title="Same data, new write-up"
         >
-          🎲 Reroll
+          🔁 Re-run
         </button>
       </div>
       <p className="font-display text-2xl font-semibold tracking-tight leading-snug">{v.headline}</p>
       <p className="text-sm text-paper/70">{v.detail}</p>
       <p className="border-t border-paper/20 pt-3 text-[11px] uppercase tracking-wide text-paper/40">
-        Nonbinding · for entertainment · you are the judge
+        Not peer-reviewed science · for fun · you decide
       </p>
     </div>
   );

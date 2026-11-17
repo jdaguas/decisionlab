@@ -24,7 +24,7 @@ export default function Home() {
             Too complicated for a coin flip. <span className="text-grape">Too silly for a spreadsheet.</span>
           </h1>
           <p className="text-ink/60">
-            Describe it once, then try it through pros &amp; cons, a weighted comparison, or a jury of friends.
+            Describe it once, then try it through pros &amp; cons, a weighted comparison, or peer review from friends.
             You still make the call.
           </p>
         </div>
@@ -56,7 +56,7 @@ export default function Home() {
                     ) : !d.options.length ? (
                       "💬 Gathering opinions"
                     ) : d.poll ? (
-                      "🧪 Jury in session"
+                      "🧪 In peer review"
                     ) : (
                       "🧠 Thinking it through"
                     )}

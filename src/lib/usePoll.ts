@@ -13,14 +13,14 @@ export function usePoll(token: string | undefined, intervalMs = 4000) {
     try {
       const res = await fetch(`/api/polls/${token}`, { cache: "no-store" });
       if (res.status === 404) {
-        setError("This jury link doesn't exist (or the server forgot it).");
+        setError("This peer review link doesn't exist (or the server forgot it).");
         return;
       }
       if (!res.ok) throw new Error();
       setData(await res.json());
       setError(null);
     } catch {
-      setError("Couldn't reach the courthouse. Retrying…");
+      setError("Couldn't reach the lab. Retrying…");
     }
   }, [token]);
 
