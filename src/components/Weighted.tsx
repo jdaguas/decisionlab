@@ -139,7 +139,7 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                   <span className={`font-semibold ${r.ruledOut ? "text-ink/40 line-through" : ""}`}>{o.label}</span>
                   <span className="font-mono">{r.percent}%</span>
                 </div>
-                <div className="h-4 overflow-hidden rounded-full border-2 border-ink bg-white">
+                <div className="h-2 overflow-hidden rounded-sm bg-ink/10">
                   <div
                     className={`h-full transition-all ${r.ruledOut ? "bg-ink/20" : "bg-grape"}`}
                     style={{ width: `${r.percent}%` }}

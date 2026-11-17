@@ -22,7 +22,7 @@ export function JuryResults({ p, highlight }: { p: PollResults; highlight?: stri
                   {n} vote{n === 1 ? "" : "s"} · {pct}%
                 </span>
               </div>
-              <div className="h-5 overflow-hidden rounded-full border-2 border-ink bg-white">
+              <div className="h-2 overflow-hidden rounded-sm bg-ink/10">
                 <div className={`h-full transition-all duration-500 ${COLORS[i % COLORS.length]}`} style={{ width: `${pct}%` }} />
               </div>
             </div>
@@ -37,7 +37,7 @@ export function JuryResults({ p, highlight }: { p: PollResults; highlight?: stri
         ) : (
           <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
             {p.reasons.map((r, i) => (
-              <li key={i} className="rounded-xl border-2 border-ink/15 bg-paper px-3 py-2 text-sm">
+              <li key={i} className="rounded-md border border-ink/10 bg-paper px-3 py-2 text-sm">
                 <span className="mr-2 chip border-ink/30 bg-white py-0 text-xs">
                   for {labelOf(p.options, r.optionId)}
                 </span>

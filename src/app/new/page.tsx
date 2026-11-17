@@ -43,7 +43,7 @@ export default function NewDilemma() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="font-display text-3xl font-extrabold">What are you deciding?</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">What are you deciding?</h1>
 
       <div className="card space-y-5">
         <div>

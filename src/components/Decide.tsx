@@ -7,7 +7,7 @@ import type { Dilemma, PollResults } from "@/lib/types";
 
 function Signal({ name, value, hint }: { name: string; value: string | null; hint: string }) {
   return (
-    <div className="rounded-xl border-2 border-ink/15 bg-paper p-3">
+    <div className="rounded-md border border-ink/10 bg-paper p-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-ink/50">{name}</div>
       <div className="font-display font-bold">{value ?? <span className="text-ink/40">{hint}</span>}</div>
     </div>
@@ -46,9 +46,9 @@ export function Decide({ d, update, poll }: { d: Dilemma; update: (p: Partial<Di
       </div>
 
       {!editing && d.outcome ? (
-        <div className="rounded-xl border-2 border-mint bg-mint-soft p-4">
+        <div className="rounded-md border border-mint/40 bg-mint-soft p-4">
           <p className="text-sm font-semibold text-mint">Decided {new Date(d.outcome.decidedAt).toLocaleDateString()}</p>
-          <p className="font-display text-2xl font-extrabold">{labelOf(d.options, d.outcome.optionId)}</p>
+          <p className="font-display text-2xl font-semibold tracking-tight">{labelOf(d.options, d.outcome.optionId)}</p>
           {d.outcome.note && <p className="mt-1 text-ink/70">&ldquo;{d.outcome.note}&rdquo;</p>}
           <button className="btn-ghost mt-2" onClick={() => setEditing(true)}>Change my mind</button>
         </div>

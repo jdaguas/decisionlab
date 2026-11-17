@@ -57,7 +57,7 @@ export default function JuryVote() {
     <div className="mx-auto max-w-xl space-y-6">
       <div className="text-center">
         <p className="mb-2 text-sm font-bold uppercase tracking-widest text-grape">🧪 You&apos;ve been summoned for jury duty</p>
-        <h1 className="font-display text-3xl font-extrabold leading-tight">{data.question}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight leading-tight">{data.question}</h1>
       </div>
 
       {voted ? (
@@ -78,8 +78,8 @@ export default function JuryVote() {
               {data.options.map((o) => (
                 <label
                   key={o.id}
-                  className={`cursor-pointer rounded-xl border-2 px-4 py-3 font-display text-lg font-bold transition ${
-                    choice === o.id ? "border-ink bg-grape text-white shadow-[3px_3px_0_0_var(--color-ink)]" : "border-ink/20 bg-white hover:border-ink"
+                  className={`cursor-pointer rounded-md border px-4 py-3 font-display text-lg font-bold transition ${
+                    choice === o.id ? "border-grape bg-grape text-white" : "border-ink/15 bg-white hover:border-ink/40"
                   }`}
                 >
                   <input type="radio" name="vote" className="sr-only" value={o.id} checked={choice === o.id} onChange={() => setChoice(o.id)} />

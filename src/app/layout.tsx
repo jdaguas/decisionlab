@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Beaker } from "@/components/Beaker";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "DecisionLab: overthink it, but make it fun",
@@ -18,13 +17,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
-        <header className="border-b-2 border-ink bg-white">
+        <header className="border-b border-ink/10 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 font-display text-xl font-extrabold">
-              <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg border-2 border-ink bg-sun">
+            <Link href="/" className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight">
+              <span aria-hidden className="grid h-8 w-8 place-items-center rounded-md bg-sun">
                 <Beaker className="h-6 w-6" />
               </span>
               DecisionLab

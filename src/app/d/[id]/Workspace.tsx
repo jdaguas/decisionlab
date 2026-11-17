@@ -49,7 +49,7 @@ export default function Workspace() {
     <div className="space-y-6">
       <div>
         <Link href="/" className="btn-ghost -ml-2 mb-2">← All dilemmas</Link>
-        <h1 className="font-display text-3xl font-extrabold leading-tight">{d.question}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight leading-tight">{d.question}</h1>
         <div className="mt-2 flex flex-wrap gap-2">
           {d.options.map((o, i) => (
             <span key={o.id} className="chip bg-white">
@@ -60,14 +60,14 @@ export default function Workspace() {
         </div>
       </div>
 
-      <div role="tablist" aria-label="Mode" className="grid grid-cols-2 gap-2 rounded-2xl border-2 border-ink bg-white p-1.5">
+      <div role="tablist" aria-label="Mode" className="grid grid-cols-2 gap-2 rounded-lg border border-ink/10 bg-white p-1">
         {MODES.map((m) => (
           <button
             key={m.id}
             role="tab"
             aria-selected={d.mode === m.id}
             onClick={() => update({ mode: m.id })}
-            className={`rounded-xl px-3 py-2 text-left transition sm:text-center ${
+            className={`rounded-md px-3 py-2 text-left transition sm:text-center ${
               d.mode === m.id ? "bg-ink text-paper" : "hover:bg-ink/5"
             }`}
           >

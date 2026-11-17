@@ -56,7 +56,7 @@ export function ProsCons({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
                             onKeyDown={(e) => e.key === "Enter" && f.text.trim() && add(o.id, type)}
                           />
                           <button
-                            className="shrink-0 rounded-md border-2 border-ink/20 px-1.5 py-0.5 font-mono text-xs hover:border-ink"
+                            className="shrink-0 rounded border border-ink/15 px-1.5 py-0.5 font-mono text-xs hover:border-ink"
                             title={`Importance: ${WEIGHT_LABEL[f.weight]} (click to change)`}
                             aria-label={`Importance: ${WEIGHT_LABEL[f.weight]}`}
                             onClick={() => setFactor(f.id, { weight: ((f.weight % 3) + 1) as Factor["weight"] })}

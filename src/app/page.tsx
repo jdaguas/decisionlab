@@ -18,8 +18,8 @@ export default function Home() {
   return (
     <div className="space-y-10">
       <section className="card relative overflow-hidden bg-grape-soft">
-        <div className="max-w-xl space-y-4">
-          <h1 className="font-display text-4xl font-extrabold leading-tight sm:text-5xl">
+        <div className="max-w-2xl space-y-4">
+          <h1 className="font-display text-4xl font-semibold tracking-tight leading-tight sm:text-5xl">
             Too complicated for a coin flip.
             <br />
             <span className="text-grape">Too silly for a spreadsheet.</span>
