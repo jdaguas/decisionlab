@@ -8,6 +8,7 @@ import { brokenBy } from "@/lib/analysis";
 import { OptionLink } from "./OptionLink";
 import { OptionImage } from "./OptionImage";
 import { compressImage } from "@/lib/image";
+import { isUsefulDrag, readTransfer, type Dropped } from "@/lib/drop";
 import type { Option } from "@/lib/types";
 
 type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
@@ -83,10 +84,36 @@ export function PhotoPicker({
   );
 }
 
+/** New options from dropped/pasted photos, links, or text. Skips duplicates; max 6 options total. */
+export function optionsFromDropped(existing: Option[], items: Dropped[]): { added: Option[]; skipped: number } {
+  const taken = existing.map((x) => x.label);
+  const added: Option[] = [];
+  let skipped = 0;
+  for (const it of items) {
+    if (existing.length + added.length >= 6) {
+      skipped++;
+      continue;
+    }
+    if (it.kind === "photo") {
+      const label = nextPhotoLabel(taken);
+      taken.push(label);
+      added.push({ id: uid(), label, image: it.image, ...(it.url ? { url: it.url } : {}) });
+    } else {
+      const { label, url } = parseOptionText(it.text);
+      if (!label || taken.some((t) => t.toLowerCase() === label.toLowerCase())) continue;
+      taken.push(label);
+      added.push(url ? { id: uid(), label, url } : { id: uid(), label });
+    }
+  }
+  return { added, skipped };
+}
+
 const withoutUrl = ({ url: _u, ...rest }: Option): Option => (void _u, rest);
 const withoutImage = ({ image: _i, imageId: _id, ...rest }: Option): Option => (void _i, void _id, rest);
 
-function AddInline({ placeholder, onAdd, max }: { placeholder: string; onAdd: (v: string) => boolean; max: number }) {
+function AddInline({
+  placeholder, onAdd, max, onPastePhotos,
+}: { placeholder: string; onAdd: (v: string) => boolean; max: number; onPastePhotos?: (items: Dropped[]) => void }) {
   const [v, setV] = useState("");
   const submit = () => {
     if (onAdd(v)) setV("");
@@ -105,6 +132,12 @@ function AddInline({ placeholder, onAdd, max }: { placeholder: string; onAdd: (v
         maxLength={max}
         value={v}
         onChange={(e) => setV(e.target.value)}
+        onPaste={async (e) => {
+          // A copied photo (not text) becomes a photo option.
+          if (!onPastePhotos || ![...e.clipboardData.files].some((f) => f.type.startsWith("image/"))) return;
+          e.preventDefault();
+          onPastePhotos(await readTransfer(e.clipboardData));
+        }}
         aria-label={placeholder}
       />
       <button type="submit" className="btn-ghost" disabled={!v.trim()}>Add</button>
@@ -148,22 +181,25 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
         dragOver ? "border-grape ring-2 ring-grape/20" : broken.length ? "border-coral/40" : "border-ink/10 hover:border-ink/25"
       }`}
       onDragOver={(e) => {
-        if ([...e.dataTransfer.items].some((i) => i.type.startsWith("image/"))) {
-          e.preventDefault();
-          setDragOver(true);
-        }
+        if (!isUsefulDrag(e.dataTransfer)) return;
+        e.preventDefault();
+        e.stopPropagation(); // this card, not the "add new options" area
+        setDragOver(true);
       }}
       onDragLeave={() => setDragOver(false)}
       onDrop={async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         setDragOver(false);
-        const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/"));
-        if (!f) return;
-        try {
-          setPhoto(await compressImage(f));
-        } catch (err) {
-          alert(err instanceof Error ? err.message : "Couldn't add that photo.");
+        const [first] = await readTransfer(e.dataTransfer);
+        if (!first) return;
+        if (first.kind === "photo") {
+          patchOption((x) => ({ ...withoutImage(x), image: first.image, ...(first.url && !x.url ? { url: first.url } : {}) }));
+          return;
         }
+        // A dropped link becomes this option's link.
+        const url = safeUrl(parseOptionText(first.text).url ?? first.text);
+        if (url) patchOption((x) => ({ ...x, url }));
       }}
     >
       <button
@@ -268,14 +304,45 @@ function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: strin
 }
 
 export function DilemmaDetails({ d, update }: Props) {
+  const [dropping, setDropping] = useState(false);
+  const [dropNote, setDropNote] = useState<string | null>(null);
+  const addDropped = (items: Dropped[]) => {
+    const { added, skipped } = optionsFromDropped(d.options, items);
+    if (added.length) update({ options: [...d.options, ...added] });
+    setDropNote(
+      skipped ? `Added ${added.length}; ${skipped} didn't fit (6 options max).` : added.length ? null : "Nothing new to add from that.",
+    );
+  };
   const hasData = (optionId: string) =>
     d.factors.some((f) => f.optionId === optionId && f.text.trim()) || !!d.scores[optionId] || !!d.fails[optionId] ||
     d.matrices.some((m) => m.pos[optionId]) || !!d.tree[optionId]?.length;
 
   return (
     <div className="card space-y-5 p-4">
-      <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Options</h2>
+      <div
+        className={`relative -m-2 rounded-lg p-2 transition ${dropping ? "bg-grape-soft/40 outline-2 outline-dashed outline-grape" : ""}`}
+        onDragOver={(e) => {
+          if (!isUsefulDrag(e.dataTransfer)) return;
+          e.preventDefault();
+          setDropping(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false);
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          setDropping(false);
+          addDropped(await readTransfer(e.dataTransfer));
+        }}
+      >
+        {dropping && (
+          <div className="pointer-events-none absolute inset-x-0 top-1 z-20 text-center text-xs font-semibold text-grape">
+            Drop photos or links to add options
+          </div>
+        )}
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">
+          Options <span className="font-normal normal-case tracking-normal text-ink/35">· drag in photos or links</span>
+        </h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {d.options.map((o) => (
             <OptionCard
@@ -316,6 +383,7 @@ export function DilemmaDetails({ d, update }: Props) {
               <AddInline
                 placeholder="Add an option or paste a link"
                 max={600}
+                onPastePhotos={addDropped}
                 onAdd={(v) => {
                   const p = addOption(d, v);
                   if (p) update(p);
@@ -325,6 +393,7 @@ export function DilemmaDetails({ d, update }: Props) {
             </li>
           )}
         </ul>
+        {dropNote && <p className="mt-2 text-xs text-ink/50">{dropNote}</p>}
       </div>
 
       <div>

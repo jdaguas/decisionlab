@@ -6,6 +6,7 @@ import { saveDilemma, uid } from "@/lib/storage";
 import type { Dilemma } from "@/lib/types";
 import { parseOptionText } from "@/lib/links";
 import { nextPhotoLabel, PhotoPicker } from "./DilemmaDetails";
+import { isUsefulDrag, readTransfer, type Dropped } from "@/lib/drop";
 
 const EXAMPLES = [
   "Should I go to the concert Wednesday even though my project is due Friday?",
@@ -17,7 +18,7 @@ const STEPS = ["Dilemma", "Options", "Dealbreakers"] as const;
 
 /** One text box: type, press Enter, it becomes a removable chip. Nothing is pre-filled. */
 function ChipInput({
-  items, setItems, draft, setDraft, placeholder, max, maxLength, label, suggestions, display = (v) => v, cards = false, images = {}, extra,
+  items, setItems, draft, setDraft, placeholder, max, maxLength, label, suggestions, display = (v) => v, cards = false, images = {}, extra, onPasteItems,
 }: {
   items: string[];
   setItems: (v: string[]) => void;
@@ -36,6 +37,8 @@ function ChipInput({
   images?: Record<string, string>;
   /** Extra control under the input (e.g. "Add photos"). */
   extra?: React.ReactNode;
+  /** Called when a photo (not text) is pasted into the box. */
+  onPasteItems?: (items: Dropped[]) => void;
 }) {
   const has = (v: string) => items.some((x) => x.toLowerCase() === v.toLowerCase());
   const add = (v: string) => {
@@ -104,6 +107,11 @@ function ChipInput({
             placeholder={placeholder}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onPaste={async (e) => {
+              if (!onPasteItems || ![...e.clipboardData.files].some((f) => f.type.startsWith("image/"))) return;
+              e.preventDefault();
+              onPasteItems(await readTransfer(e.clipboardData));
+            }}
           />
           <button type="submit" className="btn-secondary shrink-0" disabled={!draft.trim()}>
             Add
@@ -141,6 +149,29 @@ export function NewDilemmaWizard() {
   const [optDraft, setOptDraft] = useState("");
   const [dbDraft, setDbDraft] = useState("");
   const [photos, setPhotos] = useState<Record<string, string>>({});
+  const [dropping, setDropping] = useState(false);
+
+  /** Dropped/pasted photos, links, or text become option cards (6 max). */
+  const addItems = (items: Dropped[]) => {
+    const next = [...options];
+    const nextPhotos: Record<string, string> = {};
+    for (const it of items) {
+      if (next.length >= 6) break;
+      if (it.kind === "photo") {
+        const label = nextPhotoLabel(next.map((t) => parseOptionText(t).label));
+        // Keep a page link with the photo by storing "Label https://…", which is parsed on create.
+        const raw = it.url ? `${label} ${it.url}` : label;
+        next.push(raw);
+        nextPhotos[raw] = it.image;
+      } else {
+        const t = it.text.trim().slice(0, 600);
+        const label = parseOptionText(t).label.toLowerCase();
+        if (t && !next.some((x) => parseOptionText(x).label.toLowerCase() === label)) next.push(t);
+      }
+    }
+    setOptions(next);
+    setPhotos((p) => ({ ...p, ...nextPhotos }));
+  };
 
   // Whatever is still typed in the box counts too, so clicking Next never loses it.
   const withDraft = (items: string[], draft: string, max: number) => {
@@ -233,12 +264,32 @@ export function NewDilemmaWizard() {
       )}
 
       {step === 1 && (
-        <div className="space-y-3">
+        <div
+          className={`relative -m-2 space-y-3 rounded-lg p-2 transition ${dropping ? "bg-grape-soft/40 outline-2 outline-dashed outline-grape" : ""}`}
+          onDragOver={(e) => {
+            if (!isUsefulDrag(e.dataTransfer)) return;
+            e.preventDefault();
+            setDropping(true);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false);
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            setDropping(false);
+            addItems(await readTransfer(e.dataTransfer));
+          }}
+        >
+          {dropping && (
+            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center rounded-lg text-sm font-semibold text-grape">
+              <span className="rounded-md bg-white px-3 py-1.5 shadow-sm">Drop photos or links to add them as options</span>
+            </div>
+          )}
           <div>
             <h2 className="font-display text-xl font-semibold">What are your options?</h2>
             <p className="text-sm text-ink/60">
-              Paste a link to include a listing or website. Don&apos;t have any yet? Skip this. Your friends
-              can suggest some, and you can add them later.
+              Type them, paste a link, or <strong>drag in photos or links</strong> from another tab. Don&apos;t have
+              any yet? Skip this. Your friends can suggest some, and you can add them later.
             </p>
           </div>
           <ChipInput
@@ -251,6 +302,7 @@ export function NewDilemmaWizard() {
             label="Option"
             cards
             images={photos}
+            onPasteItems={addItems}
             extra={
               <PhotoPicker
                 multiple
