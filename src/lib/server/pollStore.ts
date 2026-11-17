@@ -86,8 +86,8 @@ const g = globalThis as unknown as { __pollStore?: PollStore };
 
 export function pollStore(): PollStore {
   if (g.__pollStore) return g.__pollStore;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY;
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SECRET_KEY?.trim();
   g.__pollStore = url && key
     ? new SupabaseStore(createClient(url, key, { auth: { persistSession: false } }))
     : new MemoryStore();
