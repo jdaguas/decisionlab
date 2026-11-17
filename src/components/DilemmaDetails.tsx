@@ -4,6 +4,7 @@ import { useState } from "react";
 import { uid } from "@/lib/storage";
 import type { Dilemma } from "@/lib/types";
 import { parseOptionText, safeUrl } from "@/lib/links";
+import { brokenBy } from "@/lib/analysis";
 import { OptionLink } from "./OptionLink";
 
 type Props = { d: Dilemma; update: (p: Partial<Dilemma>) => void };
@@ -37,14 +38,14 @@ function AddInline({ placeholder, onAdd, max }: { placeholder: string; onAdd: (v
   };
   return (
     <form
-      className="flex items-center gap-1"
+      className="flex w-full items-center gap-1"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
       <input
-        className="input w-56 py-1 text-sm"
+        className="input py-1 text-sm"
         placeholder={placeholder}
         maxLength={max}
         value={v}
@@ -56,62 +57,122 @@ function AddInline({ placeholder, onAdd, max }: { placeholder: string; onAdd: (v
   );
 }
 
+/** A roomy card for one option: name, link, and dealbreaker status at a glance. */
+function OptionCard({ d, update, optionId, onRemove }: Props & { optionId: string; onRemove: () => void }) {
+  const o = d.options.find((x) => x.id === optionId)!;
+  const [editingLink, setEditingLink] = useState(false);
+  const [linkDraft, setLinkDraft] = useState(o.url ?? "");
+  const [linkError, setLinkError] = useState(false);
+  const broken = brokenBy(d, o.id);
+
+  const saveLink = () => {
+    const v = linkDraft.trim();
+    const url = v ? safeUrl(v) : null;
+    if (v && !url) return setLinkError(true);
+    update({ options: d.options.map((x) => (x.id === o.id ? (url ? { ...x, url } : { id: x.id, label: x.label }) : x)) });
+    setEditingLink(false);
+    setLinkError(false);
+  };
+
+  return (
+    <li
+      className={`group relative flex min-h-28 flex-col justify-between gap-3 rounded-lg border bg-white p-4 transition ${
+        broken.length ? "border-coral/40" : "border-ink/10 hover:border-ink/25"
+      }`}
+    >
+      <button
+        className="absolute top-2 right-2 rounded px-1.5 text-ink/30 hover:bg-ink/5 hover:text-ink"
+        aria-label={`Remove option ${o.label}`}
+        onClick={onRemove}
+      >
+        ✕
+      </button>
+      <p className={`pr-6 font-display text-lg font-semibold leading-snug ${broken.length ? "text-ink/40 line-through" : ""}`}>
+        {o.label}
+      </p>
+
+      <div className="space-y-1.5">
+        {editingLink ? (
+          <form
+            className="flex gap-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveLink();
+            }}
+          >
+            <input
+              autoFocus
+              className={`input py-1 text-xs ${linkError ? "border-coral" : ""}`}
+              placeholder="https://…"
+              maxLength={500}
+              value={linkDraft}
+              onChange={(e) => {
+                setLinkDraft(e.target.value);
+                setLinkError(false);
+              }}
+              onKeyDown={(e) => e.key === "Escape" && setEditingLink(false)}
+              aria-label={`Link for ${o.label}`}
+            />
+            <button type="submit" className="btn-ghost text-xs">Save</button>
+          </form>
+        ) : o.url ? (
+          <div className="flex items-center gap-2">
+            <OptionLink url={o.url} />
+            <button className="text-xs text-ink/40 hover:text-ink" onClick={() => setEditingLink(true)}>Edit</button>
+          </div>
+        ) : (
+          <button className="text-xs font-medium text-ink/40 hover:text-grape" onClick={() => setEditingLink(true)}>
+            🔗 Add link
+          </button>
+        )}
+        {linkError && <p className="text-xs text-coral">That doesn&apos;t look like a web link (http or https).</p>}
+        {broken.length > 0 && (
+          <p className="text-xs font-medium text-coral">🚫 Breaks: {broken.join(", ")}</p>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function DilemmaDetails({ d, update }: Props) {
   const hasData = (optionId: string) =>
     d.factors.some((f) => f.optionId === optionId && f.text.trim()) || !!d.scores[optionId] || !!d.fails[optionId];
 
   return (
-    <div className="card grid gap-5 p-4 sm:grid-cols-2">
+    <div className="card space-y-5 p-4">
       <div>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">Options</h2>
-        <div className="flex flex-wrap items-center gap-2">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {d.options.map((o) => (
-            <span key={o.id} className="chip gap-1.5 bg-white pr-1">
-              {o.label}
-              <OptionLink url={o.url} label={false} />
-              <button
-                className="rounded px-1 text-xs text-ink/40 hover:bg-ink/5 hover:text-ink"
-                title={o.url ? "Change link" : "Add a link (listing, menu, website…)"}
-                aria-label={o.url ? `Change link for ${o.label}` : `Add a link to ${o.label}`}
-                onClick={() => {
-                  const v = prompt(`Link for “${o.label}” (leave empty to remove):`, o.url ?? "");
-                  if (v === null) return;
-                  const url = v.trim() ? safeUrl(v) : null;
-                  if (v.trim() && !url) return alert("That doesn't look like a web link (http or https).");
-                  update({ options: d.options.map((x) => (x.id === o.id ? (url ? { ...x, url } : { id: x.id, label: x.label }) : x)) });
-                }}
-              >
-                🔗
-              </button>
-              <button
-                className="rounded px-1 text-ink/40 hover:bg-ink/5 hover:text-ink"
-                aria-label={`Remove option ${o.label}`}
-                onClick={() => {
-                  if (!hasData(o.id) || confirm(`Remove “${o.label}”? Its pros, cons, and ratings will be deleted.`)) {
-                    update(removeOption(d, o.id));
-                  }
-                }}
-              >
-                ✕
-              </button>
-            </span>
-          ))}
-          {d.options.length === 0 && <span className="text-sm text-ink/50">None yet. You&apos;re gathering opinions.</span>}
-          {d.options.length < 6 && (
-            <AddInline
-              placeholder="Add an option or paste a link"
-              max={600}
-              onAdd={(v) => {
-                const p = addOption(d, v);
-                if (p) update(p);
-                return !!p;
+            <OptionCard
+              key={o.id}
+              d={d}
+              update={update}
+              optionId={o.id}
+              onRemove={() => {
+                if (!hasData(o.id) || confirm(`Remove “${o.label}”? Its pros, cons, and ratings will be deleted.`)) {
+                  update(removeOption(d, o.id));
+                }
               }}
             />
+          ))}
+          {d.options.length < 6 && (
+            <li className="flex min-h-28 flex-col justify-center gap-2 rounded-lg border border-dashed border-ink/20 p-4">
+              <span className="text-sm text-ink/50">
+                {d.options.length === 0 ? "No options yet. You're gathering opinions." : d.options.length === 1 ? "Add one more to compare." : "Another option?"}
+              </span>
+              <AddInline
+                placeholder="Add an option or paste a link"
+                max={600}
+                onAdd={(v) => {
+                  const p = addOption(d, v);
+                  if (p) update(p);
+                  return !!p;
+                }}
+              />
+            </li>
           )}
-        </div>
-        {d.options.length === 1 && (
-          <p className="mt-2 text-xs text-coral">Add one more option to compare.</p>
-        )}
+        </ul>
       </div>
 
       <div>
@@ -140,6 +201,7 @@ export function DilemmaDetails({ d, update }: Props) {
           ))}
           {d.dealbreakers.length === 0 && <span className="text-sm text-ink/50">None.</span>}
           {d.dealbreakers.length < 6 && (
+            <div className="w-full max-w-xs">
             <AddInline
               placeholder="Add a dealbreaker"
               max={100}
@@ -150,6 +212,7 @@ export function DilemmaDetails({ d, update }: Props) {
                 return true;
               }}
             />
+            </div>
           )}
         </div>
       </div>

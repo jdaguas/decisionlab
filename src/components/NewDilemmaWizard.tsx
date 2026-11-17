@@ -16,7 +16,7 @@ const STEPS = ["Dilemma", "Options", "Dealbreakers"] as const;
 
 /** One text box: type, press Enter, it becomes a removable chip. Nothing is pre-filled. */
 function ChipInput({
-  items, setItems, draft, setDraft, placeholder, max, maxLength, label, suggestions, display = (v) => v,
+  items, setItems, draft, setDraft, placeholder, max, maxLength, label, suggestions, display = (v) => v, cards = false,
 }: {
   items: string[];
   setItems: (v: string[]) => void;
@@ -29,6 +29,8 @@ function ChipInput({
   suggestions: string[];
   /** How to display an item (e.g. strip a pasted link down to its name). */
   display?: (v: string) => string;
+  /** Show items as roomy cards (options) instead of small chips (dealbreakers). */
+  cards?: boolean;
 }) {
   const has = (v: string) => items.some((x) => x.toLowerCase() === v.toLowerCase());
   const add = (v: string) => {
@@ -40,7 +42,28 @@ function ChipInput({
   const open = suggestions.filter((x) => !has(x));
   return (
     <div className="space-y-3">
-      {items.length > 0 && (
+      {items.length > 0 && cards && (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {items.map((v) => {
+            const shown = display(v);
+            const linked = shown.endsWith(" 🔗");
+            return (
+              <li key={v} title={v} className="relative flex min-h-20 flex-col justify-between gap-2 rounded-lg border border-ink/10 bg-white p-4">
+                <button
+                  className="absolute top-2 right-2 rounded px-1.5 text-ink/30 hover:bg-ink/5 hover:text-ink"
+                  aria-label={`Remove ${label.toLowerCase()} ${v}`}
+                  onClick={() => setItems(items.filter((x) => x !== v))}
+                >
+                  ✕
+                </button>
+                <span className="pr-6 font-display text-lg font-semibold leading-snug">{linked ? shown.slice(0, -3) : shown}</span>
+                {linked && <span className="text-xs font-medium text-grape">🔗 Link attached</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {items.length > 0 && !cards && (
         <div className="flex flex-wrap gap-2">
           {items.map((v) => (
             <span key={v} className="chip gap-1 bg-white pr-1" title={v}>
@@ -213,6 +236,7 @@ export function NewDilemmaWizard() {
             max={6}
             maxLength={600}
             label="Option"
+            cards
             display={(v) => {
               const p = parseOptionText(v);
               return p.url ? `${p.label} 🔗` : p.label;
