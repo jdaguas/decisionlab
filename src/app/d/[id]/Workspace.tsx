@@ -13,7 +13,7 @@ import { Decide } from "@/components/Decide";
 
 const MODES: { id: Mode; label: string; blurb: string }[] = [
   { id: "think", label: "🧠 Think It Through", blurb: "Weigh it yourself" },
-  { id: "settle", label: "🧑‍⚖️ Settle This", blurb: "Ask your friends" },
+  { id: "settle", label: "🧪 Settle This", blurb: "Ask your friends" },
 ];
 const METHODS: { id: Method; label: string }[] = [
   { id: "proscons", label: "Pros & Cons" },

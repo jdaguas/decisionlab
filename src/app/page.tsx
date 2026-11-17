@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { deleteDilemma, listDilemmas } from "@/lib/storage";
 import { labelOf } from "@/lib/analysis";
+import { Beaker } from "@/components/Beaker";
 import type { Dilemma } from "@/lib/types";
 
 export default function Home() {
@@ -32,8 +33,8 @@ export default function Home() {
             + Start a dilemma
           </Link>
         </div>
-        <div aria-hidden className="pointer-events-none absolute -right-6 -bottom-10 hidden text-[10rem] sm:block">
-          🤔
+        <div aria-hidden className="pointer-events-none absolute -right-4 -bottom-8 hidden rotate-12 sm:block">
+          <Beaker className="h-56 w-56" />
         </div>
       </section>
 
@@ -62,7 +63,7 @@ export default function Home() {
                     {d.outcome ? (
                       <>✅ Decided: <strong className="text-ink">{labelOf(d.options, d.outcome.optionId)}</strong></>
                     ) : d.poll ? (
-                      "🧑‍⚖️ Jury in session"
+                      "🧪 Jury in session"
                     ) : (
                       "🧠 Thinking it through"
                     )}

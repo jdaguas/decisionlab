@@ -5,6 +5,7 @@ import { labelOf, prosConsLeader, weightedLeader, weightedSummary } from "@/lib/
 import { juryLeader } from "@/lib/usePoll";
 import { verdict } from "@/lib/verdict";
 import type { Dilemma, PollResults } from "@/lib/types";
+import { Beaker } from "./Beaker";
 
 export function Verdict({ d, poll }: { d: Dilemma; poll: PollResults | null }) {
   const [seed, setSeed] = useState(() => d.id.charCodeAt(0));
@@ -26,7 +27,9 @@ export function Verdict({ d, poll }: { d: Dilemma; poll: PollResults | null }) {
   return (
     <div className="card sticky top-4 space-y-4 bg-ink text-paper shadow-[4px_4px_0_0_var(--color-grape)]">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-widest text-sun">⚖️ The Verdict</span>
+        <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-sun">
+          <Beaker className="h-4 w-4" liquid="var(--color-sun)" stroke="var(--color-paper)" /> The Verdict
+        </span>
         <button
           className="rounded-md px-2 py-0.5 text-xs text-paper/60 hover:bg-paper/10 hover:text-paper"
           onClick={() => setSeed((s) => s + 1)}

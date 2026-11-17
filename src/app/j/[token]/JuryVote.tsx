@@ -56,7 +56,7 @@ export default function JuryVote() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div className="text-center">
-        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-grape">🧑‍⚖️ You&apos;ve been summoned for jury duty</p>
+        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-grape">🧪 You&apos;ve been summoned for jury duty</p>
         <h1 className="font-display text-3xl font-extrabold leading-tight">{data.question}</h1>
       </div>
 

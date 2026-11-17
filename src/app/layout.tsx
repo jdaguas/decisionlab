@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
+import { Beaker } from "@/components/Beaker";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <Link href="/" className="flex items-center gap-2 font-display text-xl font-extrabold">
               <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg border-2 border-ink bg-sun">
-                ⚖️
+                <Beaker className="h-6 w-6" />
               </span>
               DecisionLab
             </Link>

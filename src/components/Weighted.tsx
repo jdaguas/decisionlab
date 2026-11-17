@@ -33,13 +33,29 @@ export function Weighted({ d, update }: { d: Dilemma; update: (p: Partial<Dilemm
           <table className="w-full min-w-[560px] border-separate border-spacing-y-2 text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-ink/50">
+                <th colSpan={3} />
+                <th
+                  colSpan={d.options.length}
+                  className="rounded-t-lg border-l-2 border-ink/10 bg-grape-soft/60 px-2 pt-1.5 font-semibold text-grape"
+                >
+                  Rate each option <span className="normal-case font-normal">(1 = awful · 5 = great)</span>
+                </th>
+                <th />
+              </tr>
+              <tr className="text-left text-xs uppercase tracking-wide text-ink/50">
                 <th className="pr-2 font-semibold">Criterion</th>
                 <th className="px-2 font-semibold">How much it matters</th>
-                <th className="px-2 font-semibold" title="If an option is rated 1 (awful) here, it's ruled out">
+                <th className="px-2 font-semibold">
                   Dealbreaker?
+                  <span className="block normal-case font-normal text-ink/40">a 1 rules it out</span>
                 </th>
-                {d.options.map((o) => (
-                  <th key={o.id} className="px-2 font-semibold normal-case text-ink">{o.label}</th>
+                {d.options.map((o, i) => (
+                  <th
+                    key={o.id}
+                    className={`bg-grape-soft/60 px-2 pb-1.5 ${i === 0 ? "border-l-2 border-ink/10" : ""}`}
+                  >
+                    <span className="chip bg-white text-xs normal-case text-ink">{o.label}</span>
+                  </th>
                 ))}
                 <th />
               </tr>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Dilemma, PollResults } from "@/lib/types";
 import { JuryResults } from "./JuryResults";
 import { Verdict } from "./Verdict";
+import { Beaker } from "./Beaker";
 
 type Props = {
   d: Dilemma;
@@ -39,7 +40,7 @@ export function Jury({ d, update, poll }: Props) {
   if (!d.poll) {
     return (
       <div className="card space-y-4 bg-sun/30 text-center">
-        <div className="text-5xl" aria-hidden>🧑‍⚖️</div>
+        <Beaker className="mx-auto h-16 w-16" />
         <h3 className="font-display text-2xl font-bold">Put it before a Friend Jury</h3>
         <p className="mx-auto max-w-md text-ink/70">
           You&apos;ll get a link to send to friends. They pick an option and can say why. No sign-up needed.
