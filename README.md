@@ -5,6 +5,8 @@
 - **Live prototype:** https://decisionlab-lac.vercel.app
 - **Project proposal:** https://decisionlab-lac.vercel.app/proposal.html ([source](public/proposal.html))
 
+> **Note on direction:** Based on TA feedback, I moved this project in a different direction from my original proposal, so DecisionLab is not the same idea I first proposed. I've since written a new proposal for this app. You can find it at the link above, or in [public/proposal.html](public/proposal.html).
+
 ## Core task (v1)
 
 1. **Describe it once.** The landing page asks three short questions: the dilemma, your options, and any dealbreakers. Options and dealbreakers are both optional. Nothing is pre-filled, and suggestions are tap-to-add chips.
